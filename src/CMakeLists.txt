@@ -1,4 +1,5 @@
 fips_begin_app(VoxelTest windowed)
-    fips_files(VoxelTest.cc)
+    fips_files(VoxelTest.cc stb_voxel_render.h)
+    oryol_shader(shaders.shd)
     fips_deps(Gfx)
 fips_end_app()
