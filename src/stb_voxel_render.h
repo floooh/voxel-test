@@ -1294,11 +1294,18 @@ struct stbvox_mesh_maker
    #define STBVOX_ICONFIG_FACE1_1
    #define STBVOX_ICONFIG_UNTEXTURED
 
+// ORYOL FIXME
+#elif STBVOX_CONFIG_MODE==30 || STBVOX_CONFIG_MODE==31
+
+   #define STBVOX_ICONFIG_VERTEX_32_XYZA
+   #define STBVOX_ICONFIG_FACE1_1
+
 #else
 #error "Selected value of STBVOX_CONFIG_MODE is not supported"
 #endif
 
-#if STBVOX_CONFIG_MODE==0 || STBVOX_CONFIG_MODE==20
+// ORYOL FIXME
+#if STBVOX_CONFIG_MODE==0 || STBVOX_CONFIG_MODE==20 || STBVOX_CONFIG_MODE==30
 #define STBVOX_ICONFIG_FACE_ATTRIBUTE
 #endif
 
@@ -1327,6 +1334,11 @@ struct stbvox_mesh_maker
    typedef stbvox_uint8 stbvox_mesh_vertex;
    #define stbvox_vertex_encode(x,y,z,ao,texlerp) \
       ((stbvox_uint8) ((z)+((ao)<<6))
+// FIXME ORYOL
+#elif defined(STBVOX_ICONFIG_VERTEX_32_XYZA)
+   typedef stbvox_uint32 stbvox_mesh_vertex;
+   #define stbvox_vertex_encode(x,y,z,ao,texlerp) \
+      ((stbvox_uint32) ((x)+((y)<<8)+((z)<<16)+((ao)<<24)))
 #else
    #error "internal error, no vertex type"
 #endif
