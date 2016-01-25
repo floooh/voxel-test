@@ -35,7 +35,7 @@
 @in vec4 facedata
 @in vec3 voxelspace_pos
 @in float amb_occ
-    _color = vec4(1.0, 0.0, 0.0, 1.0);
+    _color = vec4(facedata.x, facedata.y, facedata.z, 1.0);
 @end
 
 //------------------------------------------------------------------------------

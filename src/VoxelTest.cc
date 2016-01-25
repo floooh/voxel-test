@@ -6,6 +6,7 @@
 #include "Gfx/Gfx.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/random.hpp"
 #include "shaders.h"
 
 #define STBVOX_CONFIG_MODE (30)
@@ -45,7 +46,8 @@ public:
     static const int SizeX = 8;
     static const int SizeY = 8;
     static const int SizeZ = 8;
-    uchar volume[SizeX][SizeY][SizeZ];
+    uchar blocks[SizeX][SizeY][SizeZ];
+    stbvox_rgb colors[SizeX][SizeY][SizeZ];
 
     static const int MaxNumVertices = (1<<16);
     struct Vertex {
@@ -60,7 +62,7 @@ AppState::Code
 VoxelTest::OnInit() {
     auto gfxSetup = GfxSetup::WindowMSAA4(800, 600, "Oryol Voxel Test");
     Gfx::Setup(gfxSetup);
-    this->clearState = ClearState::ClearAll(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 1.0f, 0);
+    this->clearState = ClearState::ClearAll(glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), 1.0f, 0);
 
     this->init_stbvox();
     this->init_volume();
@@ -109,8 +111,8 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameCount * 0.01f;
-    glm::vec3 pos(glm::sin(angle) * 20.0f, 10.0f, glm::cos(angle) * 20.0f);
-    this->view = glm::lookAt(pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 pos(glm::sin(angle) * 15.0f, 10.0f, glm::cos(angle) * 15.0f);
+    this->view = glm::lookAt(pos, glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 //------------------------------------------------------------------------------
@@ -140,18 +142,28 @@ VoxelTest::init_stbvox() {
     stbvox_set_input_range(&this->meshMaker, 1, 1, 1, SizeX-1, SizeY-1, SizeZ-1);
 
     stbvox_input_description* desc = stbvox_get_input_description(&this->meshMaker);
-    desc->blocktype = &(this->volume[0][0][0]);
+    desc->blocktype = &(this->blocks[0][0][0]);
+    desc->rgb = &(this->colors[0][0][0]);
 }
 
 //------------------------------------------------------------------------------
 void
 VoxelTest::init_volume() {
-    Memory::Clear(this->volume, sizeof(this->volume));
-    this->volume[1][1][1] = 2;
-    this->volume[3][3][3] = 1;
-    this->volume[4][4][4] = 1;
-    this->volume[5][5][5] = 1;
-    this->volume[SizeX-2][SizeY-2][SizeZ-2] = 2;
+    Memory::Clear(this->blocks, sizeof(this->blocks));
+    Memory::Clear(this->colors, sizeof(this->colors));
+    for (int x = 1; x < SizeX-1; x++) {
+        for (int y = 1; y < SizeY-1; y++) {
+            for (int z = 1; z < SizeZ-1; z++) {
+                if (glm::linearRand(0.0f, 1.0f) > 0.5f) {
+                    this->blocks[x][y][z] = 1;
+                    const glm::vec3 c = glm::abs(glm::ballRand(255.0f));
+                    this->colors[x][y][z].r = uint8(c.x);
+                    this->colors[x][y][z].g = uint8(c.y);
+                    this->colors[x][y][z].b = uint8(c.z);
+                }
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -165,7 +177,7 @@ VoxelTest::init_resources(const GfxSetup& gfxSetup) {
     auto meshSetup = MeshSetup::FromData(Usage::Dynamic, Usage::Immutable);
     meshSetup.Layout
         .Add(VertexAttr::Position, VertexFormat::UByte4)
-        .Add(VertexAttr::Normal, VertexFormat::UByte4);
+        .Add(VertexAttr::Normal, VertexFormat::UByte4N);
     meshSetup.NumVertices = numVertices;
     meshSetup.NumIndices  = numIndices;
     meshSetup.IndicesType = IndexType::Index16;
@@ -204,6 +216,7 @@ VoxelTest::init_mesh_data() {
     this->meshDataDirty = true;
 
     // dump generated data
+    /*
     for (int quad = 0; quad < numQuads; quad++) {
         Log::Info("quad %d\n", quad);
         for (int corner = 0; corner < 4; corner++) {
@@ -222,4 +235,5 @@ VoxelTest::init_mesh_data() {
                       amb_occ, attr_face);
         }
     }
+    */
 }
