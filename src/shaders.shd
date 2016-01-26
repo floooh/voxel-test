@@ -5,6 +5,7 @@
 
 @uniform_block vsParams VSParams
 @uniform mat4 mvp ModelViewProjection
+@uniform vec4[6] normal_table NormalTable
 @uniform vec3 scale Scale
 @uniform vec3 translate Translate
 @uniform vec3 tex_translate TexTranslate
@@ -17,9 +18,10 @@
 @in vec4 normal
 @out vec4 facedata
 @out vec3 voxelspace_pos
-//@out vec3 vnormal
+@out vec3 vnormal
 @out float amb_occ
-    facedata = normal;
+    facedata.xyz = normal.xyz / 255.0;
+    facedata.w = normal.w;
     vec3 offset;
     offset.x = position.x;
     offset.y = position.y;
@@ -27,6 +29,8 @@
     amb_occ  = position.w;
     voxelspace_pos = offset * scale;
     vec4 p = vec4(voxelspace_pos + translate, 1.0);
+    int normal_index = int(mod(normal.w / 4.0, 6.0));
+    vnormal = normal_table[normal_index].xyz;
     _position = mul(mvp, p);
 @end
 
@@ -34,8 +38,10 @@
 @fs fs
 @in vec4 facedata
 @in vec3 voxelspace_pos
+@in vec3 vnormal
 @in float amb_occ
-    _color = vec4(facedata.x, facedata.y, facedata.z, 1.0);
+//    _color = vec4(facedata.x, facedata.y, facedata.z, 1.0);
+_color = (vec4(vnormal.x, vnormal.y, vnormal.z, 0.5) + 1.0) * 0.5;
 @end
 
 //------------------------------------------------------------------------------

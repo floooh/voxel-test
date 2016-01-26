@@ -76,6 +76,14 @@ VoxelTest::OnInit() {
     this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     this->model = glm::mat4();
 
+    // setup static shader uniforms
+    this->vsParams.NormalTable[0] = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    this->vsParams.NormalTable[1] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    this->vsParams.NormalTable[2] = glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+    this->vsParams.NormalTable[3] = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+    this->vsParams.NormalTable[4] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    this->vsParams.NormalTable[5] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+
     return App::OnInit();
 }
 
@@ -111,8 +119,9 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameCount * 0.01f;
-    glm::vec3 pos(glm::sin(angle) * 15.0f, 10.0f, glm::cos(angle) * 15.0f);
-    this->view = glm::lookAt(pos, glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::vec3 pos(glm::sin(angle) * 15.0f, 10.0f, glm::cos(angle) * 15.0f);
+    const glm::vec3 center(4.0f, 4.0f, 4.0f);
+    this->view = glm::lookAt(pos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 //------------------------------------------------------------------------------
@@ -177,7 +186,7 @@ VoxelTest::init_resources(const GfxSetup& gfxSetup) {
     auto meshSetup = MeshSetup::FromData(Usage::Dynamic, Usage::Immutable);
     meshSetup.Layout
         .Add(VertexAttr::Position, VertexFormat::UByte4)
-        .Add(VertexAttr::Normal, VertexFormat::UByte4N);
+        .Add(VertexAttr::Normal, VertexFormat::UByte4);
     meshSetup.NumVertices = numVertices;
     meshSetup.NumIndices  = numIndices;
     meshSetup.IndicesType = IndexType::Index16;
