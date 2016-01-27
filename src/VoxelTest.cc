@@ -4,6 +4,7 @@
 #include "Pre.h"
 #include "Core/App.h"
 #include "Gfx/Gfx.h"
+#include "Time/Clock.h"
 #include "glm/vec4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/random.hpp"
@@ -43,9 +44,9 @@ public:
     Shaders::Voxel::VSParams vsParams;
     int32 numQuads = 0;
 
-    static const int SizeX = 8;
-    static const int SizeY = 8;
-    static const int SizeZ = 8;
+    static const int SizeX = 16;
+    static const int SizeY = 16;
+    static const int SizeZ = 16;
     uchar blocks[SizeX][SizeY][SizeZ];
     stbvox_rgb colors[SizeX][SizeY][SizeZ];
 
@@ -119,15 +120,21 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameCount * 0.01f;
-    const glm::vec3 pos(glm::sin(angle) * 15.0f, 10.0f, glm::cos(angle) * 15.0f);
-    const glm::vec3 center(4.0f, 4.0f, 4.0f);
-    this->view = glm::lookAt(pos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::vec3 viewerPos(0.0f, 20.0f, 30.0f);
+    const glm::vec3 center(8.0f, 8.0f, 8.0f);
+    this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 m = glm::translate(glm::mat4(), center);
+    m = glm::rotate(m, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    m = glm::translate(m, -center);
+    this->model = m;
 }
 
 //------------------------------------------------------------------------------
 void
 VoxelTest::update_shader_params() {
     this->vsParams.ModelViewProjection = this->proj * this->view * this->model;
+    this->vsParams.Model = this->model;
+    this->vsParams.LightDir = glm::normalize(glm::vec3(1.0f, 0.2f, 1.0f));
     float transform[3][3];
     stbvox_get_transform(&this->meshMaker, transform);
     this->vsParams.Scale.x = transform[0][0];
@@ -163,7 +170,7 @@ VoxelTest::init_volume() {
     for (int x = 1; x < SizeX-1; x++) {
         for (int y = 1; y < SizeY-1; y++) {
             for (int z = 1; z < SizeZ-1; z++) {
-                if (glm::linearRand(0.0f, 1.0f) > 0.5f) {
+                if (glm::linearRand(0.0f, 1.0f) > 0.25f) {
                     this->blocks[x][y][z] = 1;
                     const glm::vec3 c = glm::abs(glm::ballRand(255.0f));
                     this->colors[x][y][z].r = uint8(c.x);
@@ -220,7 +227,9 @@ VoxelTest::init_resources(const GfxSetup& gfxSetup) {
 //------------------------------------------------------------------------------
 void
 VoxelTest::init_mesh_data() {
+    TimePoint start = Clock::Now();
     stbvox_make_mesh(&this->meshMaker);
+    Log::Info("Mesh generated in %f ms\n", Clock::Since(start).AsMilliSeconds());
     this->numQuads = stbvox_get_quad_count(&this->meshMaker, 0);
     this->meshDataDirty = true;
 
