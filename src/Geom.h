@@ -1,0 +1,30 @@
+#pragma once
+//------------------------------------------------------------------------------
+/**
+    @class Geom
+    @brief a 'meshified' voxel chunk in a geometry pool
+*/
+#include "Core/Types.h"
+#include "Gfx/Gfx.h"
+#include "glm/mat4x4.hpp"
+#include "shaders.h"
+
+class Geom {
+public:
+    static const int MaxNumVertices = (1<<16);
+    static const int MaxNumQuads = MaxNumVertices / 4;
+    static const int MaxNumIndices = MaxNumQuads * 6;
+
+    /// one-time init
+    void Setup(const Oryol::GfxSetup& gfxSetup, Oryol::Id indexMesh);
+    /// one-time discard
+    void Discard();
+
+    int NumQuads = 0;
+    glm::mat4 ModelTransform;
+    glm::vec3 BoxMin;
+    glm::vec3 BoxMax;
+    Oryol::Id Mesh;
+    Oryol::Id DrawState;
+    Oryol::Shaders::Voxel::VSParams VSParams;
+};
