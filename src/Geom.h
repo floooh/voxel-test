@@ -21,9 +21,6 @@ public:
     void Discard();
 
     int NumQuads = 0;
-    glm::mat4 ModelTransform;
-    glm::vec3 BoxMin;
-    glm::vec3 BoxMax;
     Oryol::Id Mesh;
     Oryol::Id DrawState;
     Oryol::Shaders::Voxel::VSParams VSParams;

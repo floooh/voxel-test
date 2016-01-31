@@ -8,6 +8,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "shaders.h"
 #include "GeomPool.h"
+#include "GeomMesher.h"
 
 using namespace Oryol;
 
@@ -20,6 +21,7 @@ public:
     void update_camera();
     void init_blocks(int frameIndex);
     void init_colors();
+    void bake_geom(const GeomMesher::Result& meshResult);
 
     int32 frameIndex = 0;
     glm::mat4 view;
@@ -28,6 +30,8 @@ public:
     ClearState clearState;
 
     GeomPool geomPool;
+    GeomMesher geomMesher;
+    Array<int> displayGeoms;
 
     static const int WorldSizeX = 256;
     static const int WorldSizeY = 256;
@@ -54,10 +58,30 @@ VoxelTest::OnInit() {
     this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     this->lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
+    this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
+    this->geomMesher.Setup();
     this->init_blocks(0);
     this->init_colors();
     return App::OnInit();
+}
+
+//------------------------------------------------------------------------------
+void
+VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
+    if (meshResult.NumQuads > 0) {
+        int geomIndex = this->geomPool.Alloc();
+        auto& geom = this->geomPool.GeomAt(geomIndex);
+        Gfx::UpdateVertices(geom.Mesh, meshResult.Vertices, meshResult.NumBytes);
+        geom.NumQuads = meshResult.NumQuads;
+        geom.VSParams.ModelViewProjection = this->proj * this->view;
+        geom.VSParams.Model = glm::mat4();
+        geom.VSParams.LightDir = this->lightDir;
+        geom.VSParams.Scale = meshResult.Scale;
+        geom.VSParams.Translate = meshResult.Translate;
+        geom.VSParams.TexTranslate = meshResult.TexTranslate;
+        this->displayGeoms.Add(geomIndex);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -65,6 +89,8 @@ AppState::Code
 VoxelTest::OnRunning() {
     this->frameIndex++;
     this->update_camera();
+    this->displayGeoms.Clear();
+    this->geomPool.FreeAll();
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
@@ -81,35 +107,45 @@ VoxelTest::OnRunning() {
     const int numChunksY = WorldSizeY / VolumeSizeY;
     const int numChunksZ = WorldSizeZ / VolumeSizeZ;
 
+    GeomMesher::Result meshResult;
+    this->geomMesher.StartMeshify();
     this->init_blocks(this->frameIndex);
-    this->geomPool.Reset();
-    this->geomPool.Begin(this->view, this->proj, this->lightDir);
     for (int x = 0; x < numChunksX; x++) {
         vol.Offset.x = x * VolumeSizeX;
         for (int y = 0; y < numChunksY; y++) {
             vol.Offset.y = y * VolumeSizeY;
             for (int z = 0; z < numChunksZ; z++) {
                 vol.Offset.z = z * VolumeSizeZ;
-                this->geomPool.Meshify(vol);
+                this->geomMesher.StartVolume(vol);
+                do {
+                    meshResult = this->geomMesher.Meshify();
+                    if (meshResult.BufferFull) {
+                        this->bake_geom(meshResult);
+                    }
+                }
+                while (!meshResult.VolumeDone);
             }
         }
     }
-    this->geomPool.End();
+    this->bake_geom(meshResult);
 
-    const int numGeoms = this->geomPool.validGeoms.Size();
+    const int numGeoms = this->displayGeoms.Size();
     for (int i = 0; i < numGeoms; i++) {
-        const Geom& geom = this->geomPool.geoms[this->geomPool.validGeoms[i]];
+        const Geom& geom = this->geomPool.GeomAt(this->displayGeoms[i]);
         Gfx::ApplyDrawState(geom.DrawState);
         Gfx::ApplyUniformBlock(geom.VSParams);
         Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
     }
     Gfx::CommitFrame();
+
     return Gfx::QuitRequested() ? AppState::Cleanup : AppState::Running;
 }
 
 //------------------------------------------------------------------------------
 AppState::Code
 VoxelTest::OnCleanup() {
+    this->geomMesher.Discard();
+    this->geomPool.Discard();
     Gfx::Discard();
     return App::OnCleanup();
 }
