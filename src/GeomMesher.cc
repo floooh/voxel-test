@@ -20,7 +20,7 @@ GeomMesher::Discard() {
 
 //------------------------------------------------------------------------------
 void
-GeomMesher::StartMeshify() {
+GeomMesher::Start() {
     stbvox_reset_buffers(&this->meshMaker);
     stbvox_set_buffer(&this->meshMaker, 0, 0, this->vertices, sizeof(this->vertices));
 }

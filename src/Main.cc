@@ -36,8 +36,8 @@ public:
     static const int WorldSizeX = 256;
     static const int WorldSizeY = 256;
     static const int WorldSizeZ = 8;
-    static const int VolumeSizeX = 16;
-    static const int VolumeSizeY = 16;
+    static const int VolumeSizeX = 64;
+    static const int VolumeSizeY = 64;
     static const int VolumeSizeZ = WorldSizeZ;
 
     uint8 blocks[WorldSizeX][WorldSizeY][WorldSizeZ];
@@ -108,8 +108,8 @@ VoxelTest::OnRunning() {
     const int numChunksZ = WorldSizeZ / VolumeSizeZ;
 
     GeomMesher::Result meshResult;
-    this->geomMesher.StartMeshify();
     this->init_blocks(this->frameIndex);
+    this->geomMesher.Start();
     for (int x = 0; x < numChunksX; x++) {
         vol.Offset.x = x * VolumeSizeX;
         for (int y = 0; y < numChunksY; y++) {

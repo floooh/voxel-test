@@ -20,7 +20,8 @@ Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh) {
     this->VSParams.NormalTable[5] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 
     // create Gfx resources
-    auto meshSetup = MeshSetup::Empty(MaxNumVertices, Usage::Dynamic);
+    // NOTE: currently geoms are replaced each frame, so use Usage::Stream
+    auto meshSetup = MeshSetup::Empty(MaxNumVertices, Usage::Stream);
     meshSetup.Layout
         .Add(VertexAttr::Position, VertexFormat::UByte4)
         .Add(VertexAttr::Normal, VertexFormat::UByte4);

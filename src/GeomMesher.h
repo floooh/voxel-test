@@ -31,8 +31,8 @@ public:
     void Discard();
 
     /// start meshifying, resets the stbox mesh maker
-    void StartMeshify();
-    /// start meshifying a new volume
+    void Start();
+    /// start a new volume
     void StartVolume(const Volume& volume);
     /// do one meshify pass, continue to call until VolumeDone
     Result Meshify();
