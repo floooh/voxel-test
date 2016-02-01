@@ -38,7 +38,7 @@ GeomMesher::StartVolume(const Volume& vol) {
         vol.Offset.z + vol.Size.z);
     stbvox_input_description* desc = stbvox_get_input_description(&this->meshMaker);
     desc->blocktype = vol.Blocks;
-    desc->rgb = (stbvox_rgb*) vol.Colors;
+    desc->color = vol.Blocks;
 }
 
 //------------------------------------------------------------------------------

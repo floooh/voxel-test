@@ -7,6 +7,7 @@
 @uniform mat4 mvp ModelViewProjection
 @uniform mat4 model Model
 @uniform vec4[6] normal_table NormalTable
+@uniform vec4[32] color_table ColorTable
 @uniform vec3 light_dir LightDir
 @uniform vec3 scale Scale
 @uniform vec3 translate Translate
@@ -22,8 +23,7 @@
 @out vec3 voxelspace_pos
 @out vec3 color
 @out float amb_occ
-    facedata.xyz = normal.xyz / 255.0;
-    facedata.w = normal.w;
+    facedata = normal.xyzw;
 
     vec3 offset = position.xzy;
     amb_occ  = position.w;
@@ -34,7 +34,8 @@
     int normal_index = int(mod(normal.w / 4.0, 6.0));
     vec3 face_normal = mul(model, normal_table[normal_index]).xzy;
     float l = clamp(dot(face_normal, light_dir), 0.0, 1.0) + 0.25;
-    color = facedata.xyz * l;
+    int color_index = int(mod(facedata.z, 32.0));
+    color = color_table[color_index].xyz * l;
 
     _position = mul(mvp, p);
 @end

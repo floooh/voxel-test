@@ -8,16 +8,11 @@ using namespace Oryol;
 
 //------------------------------------------------------------------------------
 void
-Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh) {
+Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh, const Shaders::Voxel::VSParams& params) {
 
     // static shader params
     // FIXME: better move those into a separate uniform block?
-    this->VSParams.NormalTable[0] = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    this->VSParams.NormalTable[1] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-    this->VSParams.NormalTable[2] = glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-    this->VSParams.NormalTable[3] = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-    this->VSParams.NormalTable[4] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-    this->VSParams.NormalTable[5] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+    this->VSParams = params;
 
     // create Gfx resources
     // NOTE: currently geoms are replaced each frame, so use Usage::Stream

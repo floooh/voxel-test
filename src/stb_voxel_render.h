@@ -1299,7 +1299,6 @@ struct stbvox_mesh_maker
 
    #define STBVOX_ICONFIG_VERTEX_32_XYZA
    #define STBVOX_ICONFIG_FACE1_1
-   #define STBVOX_ICONFIG_UNTEXTURED
 
 #else
 #error "Selected value of STBVOX_CONFIG_MODE is not supported"

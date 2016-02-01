@@ -20,7 +20,6 @@ public:
 
     void update_camera();
     void init_blocks(int frameIndex);
-    void init_colors();
     void bake_geom(const GeomMesher::Result& meshResult);
 
     int32 frameIndex = 0;
@@ -39,9 +38,9 @@ public:
     static const int VolumeSizeX = 64;
     static const int VolumeSizeY = 64;
     static const int VolumeSizeZ = WorldSizeZ;
+    static const int NumBlockTypes = 32;
 
     uint8 blocks[WorldSizeX][WorldSizeY][WorldSizeZ];
-    uint8 colors[WorldSizeX][WorldSizeY][WorldSizeZ][3];
 };
 OryolMain(VoxelTest);
 
@@ -62,7 +61,6 @@ VoxelTest::OnInit() {
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
     this->init_blocks(0);
-    this->init_colors();
     return App::OnInit();
 }
 
@@ -96,7 +94,6 @@ VoxelTest::OnRunning() {
 
     Volume vol;
     vol.Blocks = &(this->blocks[0][0][0]);
-    vol.Colors = &(this->colors[0][0][0][0]);
     vol.ArraySize.x = WorldSizeX;
     vol.ArraySize.y = WorldSizeY;
     vol.ArraySize.z = WorldSizeZ;
@@ -158,28 +155,11 @@ VoxelTest::init_blocks(int index) {
         for (int y = 1; y < WorldSizeY-1; y++) {
             for (int z = 1; z < WorldSizeZ-1; z++) {
                 if ((z <= ((x+index)&7)) && (z <= (y&7))) {
-                    this->blocks[x][y][z] = 1;
+                    uint8 blockType = (z+y+1) & (NumBlockTypes-1);;
+                    this->blocks[x][y][z] = blockType;
                 }
             }
         }
-    }
-}
-
-//------------------------------------------------------------------------------
-void
-VoxelTest::init_colors() {
-    uint8 r=0, g=0, b=127;
-    for (int x = 0; x < WorldSizeX; x++) {
-        for (int y = 0; y < WorldSizeY; y++) {
-            for (int z = 0; z < WorldSizeZ; z++) {
-                this->colors[x][y][z][0] = r;
-                this->colors[x][y][z][1] = g;
-                this->colors[x][y][z][2] = b;
-                b += 32;
-            }
-            g += 240;
-        }
-        r += 1;
     }
 }
 

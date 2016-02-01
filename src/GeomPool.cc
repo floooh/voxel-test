@@ -4,6 +4,7 @@
 #include "Pre.h"
 #include "GeomPool.h"
 #include "glm/geometric.hpp"
+#include "glm/gtc/random.hpp"
 
 using namespace Oryol;
 
@@ -32,9 +33,21 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     meshSetup.DataIndexOffset = 0;
     this->indexMesh = Gfx::CreateResource(meshSetup, indices, sizeof(indices));
 
-    // setup the geoms
+    // setup shader params template
+    Shaders::Voxel::VSParams vsParams;
+    vsParams.NormalTable[0] = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    vsParams.NormalTable[1] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    vsParams.NormalTable[2] = glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+    vsParams.NormalTable[3] = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+    vsParams.NormalTable[4] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    vsParams.NormalTable[5] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+    for (int i = 0; i < int(sizeof(vsParams.ColorTable)/sizeof(glm::vec4)); i++) {
+        vsParams.ColorTable[i] = glm::linearRand(glm::vec4(0.25f), glm::vec4(1.0f));
+    }
+
+    // setup geoms
     for (auto& geom : this->geoms) {
-        geom.Setup(gfxSetup, this->indexMesh);
+        geom.Setup(gfxSetup, this->indexMesh, vsParams);
     }
     this->freeGeoms.Reserve(NumGeoms);
     this->FreeAll();
