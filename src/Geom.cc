@@ -15,8 +15,7 @@ Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh, const Shaders::Voxel::VSPara
     this->VSParams = params;
 
     // create Gfx resources
-    // NOTE: currently geoms are replaced each frame, so use Usage::Stream
-    auto meshSetup = MeshSetup::Empty(MaxNumVertices, Usage::Stream);
+    auto meshSetup = MeshSetup::Empty(MaxNumVertices, Usage::Dynamic);
     meshSetup.Layout
         .Add(VertexAttr::Position, VertexFormat::UByte4)
         .Add(VertexAttr::Normal, VertexFormat::UByte4);
