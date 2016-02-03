@@ -6,6 +6,7 @@
 #include "Gfx/Gfx.h"
 #include "Time/Clock.h"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/noise.hpp"
 #include "shaders.h"
 #include "GeomPool.h"
 #include "GeomMesher.h"
@@ -34,7 +35,7 @@ public:
 
     static const int WorldSizeX = 256;
     static const int WorldSizeY = 256;
-    static const int WorldSizeZ = 8;
+    static const int WorldSizeZ = 32;
     static const int VolumeSizeX = 64;
     static const int VolumeSizeY = 64;
     static const int VolumeSizeZ = WorldSizeZ;
@@ -60,7 +61,6 @@ VoxelTest::OnInit() {
     this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
-    this->init_blocks(0);
     return App::OnInit();
 }
 
@@ -72,7 +72,6 @@ VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
         auto& geom = this->geomPool.GeomAt(geomIndex);
         Gfx::UpdateVertices(geom.Mesh, meshResult.Vertices, meshResult.NumBytes);
         geom.NumQuads = meshResult.NumQuads;
-        geom.VSParams.ModelViewProjection = this->proj * this->view;
         geom.VSParams.Model = glm::mat4();
         geom.VSParams.LightDir = this->lightDir;
         geom.VSParams.Scale = meshResult.Scale;
@@ -87,48 +86,52 @@ AppState::Code
 VoxelTest::OnRunning() {
     this->frameIndex++;
     this->update_camera();
-    this->displayGeoms.Clear();
-    this->geomPool.FreeAll();
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
-    Volume vol;
-    vol.Blocks = &(this->blocks[0][0][0]);
-    vol.ArraySize.x = WorldSizeX;
-    vol.ArraySize.y = WorldSizeY;
-    vol.ArraySize.z = WorldSizeZ;
-    vol.Size.x = VolumeSizeX;
-    vol.Size.y = VolumeSizeY;
-    vol.Size.z = VolumeSizeZ;
-    const int numChunksX = WorldSizeX / VolumeSizeX;
-    const int numChunksY = WorldSizeY / VolumeSizeY;
-    const int numChunksZ = WorldSizeZ / VolumeSizeZ;
+    if (1 == this->frameIndex) {
+        this->displayGeoms.Clear();
+        this->geomPool.FreeAll();
+        Volume vol;
+        vol.Blocks = &(this->blocks[0][0][0]);
+        vol.ArraySize.x = WorldSizeX;
+        vol.ArraySize.y = WorldSizeY;
+        vol.ArraySize.z = WorldSizeZ;
+        vol.Size.x = VolumeSizeX;
+        vol.Size.y = VolumeSizeY;
+        vol.Size.z = VolumeSizeZ;
+        const int numChunksX = WorldSizeX / VolumeSizeX;
+        const int numChunksY = WorldSizeY / VolumeSizeY;
+        const int numChunksZ = WorldSizeZ / VolumeSizeZ;
 
-    GeomMesher::Result meshResult;
-    this->init_blocks(this->frameIndex);
-    this->geomMesher.Start();
-    for (int x = 0; x < numChunksX; x++) {
-        vol.Offset.x = x * VolumeSizeX;
-        for (int y = 0; y < numChunksY; y++) {
-            vol.Offset.y = y * VolumeSizeY;
-            for (int z = 0; z < numChunksZ; z++) {
-                vol.Offset.z = z * VolumeSizeZ;
-                this->geomMesher.StartVolume(vol);
-                do {
-                    meshResult = this->geomMesher.Meshify();
-                    if (meshResult.BufferFull) {
-                        this->bake_geom(meshResult);
+        GeomMesher::Result meshResult;
+        this->init_blocks(this->frameIndex);
+        this->geomMesher.Start();
+        for (int x = 0; x < numChunksX; x++) {
+            vol.Offset.x = x * VolumeSizeX;
+            for (int y = 0; y < numChunksY; y++) {
+                vol.Offset.y = y * VolumeSizeY;
+                for (int z = 0; z < numChunksZ; z++) {
+                    vol.Offset.z = z * VolumeSizeZ;
+                    this->geomMesher.StartVolume(vol);
+                    do {
+                        meshResult = this->geomMesher.Meshify();
+                        if (meshResult.BufferFull) {
+                            this->bake_geom(meshResult);
+                        }
                     }
+                    while (!meshResult.VolumeDone);
                 }
-                while (!meshResult.VolumeDone);
             }
         }
+        this->bake_geom(meshResult);
     }
-    this->bake_geom(meshResult);
 
+    const glm::mat4 mvp = this->proj * this->view;
     const int numGeoms = this->displayGeoms.Size();
     for (int i = 0; i < numGeoms; i++) {
-        const Geom& geom = this->geomPool.GeomAt(this->displayGeoms[i]);
+        Geom& geom = this->geomPool.GeomAt(this->displayGeoms[i]);
+        geom.VSParams.ModelViewProjection = mvp;
         Gfx::ApplyDrawState(geom.DrawState);
         Gfx::ApplyUniformBlock(geom.VSParams);
         Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
@@ -151,6 +154,25 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::init_blocks(int index) {
     Memory::Clear(this->blocks, sizeof(this->blocks));
+
+    const float dx = 1.0f / float(WorldSizeX);
+    const float dy = 1.0f / float(WorldSizeY);
+    glm::vec2 p(dx, dy);
+    for (int x = 1; x < WorldSizeX-1; x++, p.x+=dx) {
+        p.y = dy;
+        for (int y = 1; y < WorldSizeY-1; y++, p.y+=dy) {
+            float n = (glm::simplex(p) + 1.0f) * 0.5f;
+            n += glm::simplex(p * 10.0f) * 0.3;
+            n += glm::simplex(p * 40.0f) * 0.1;
+            n = glm::clamp(n, 0.0f, 1.0f);
+            const int max_z = 1 + (WorldSizeZ-2)*n;
+            for (int z = 1; z < max_z; z++) {
+                this->blocks[x][y][z] = z;
+            }
+        }
+    }
+
+/*
     for (int x = 1; x < WorldSizeX-1; x++) {
         for (int y = 1; y < WorldSizeY-1; y++) {
             for (int z = 1; z < WorldSizeZ-1; z++) {
@@ -161,6 +183,7 @@ VoxelTest::init_blocks(int index) {
             }
         }
     }
+*/
 }
 
 //------------------------------------------------------------------------------
@@ -168,6 +191,6 @@ void
 VoxelTest::update_camera() {
     float32 angle = this->frameIndex * 0.005f;
     const glm::vec3 center(128.0f, 0.0f, 128.0f);
-    const glm::vec3 viewerPos(sin(angle)* 100.0f, 25.0f, cos(angle) * 100.0f);
+    const glm::vec3 viewerPos(sin(angle)* 200.0f, 75.0f, cos(angle) * 200.0f);
     this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }
