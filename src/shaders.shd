@@ -29,7 +29,7 @@
     amb_occ  = position.w;
 
     voxelspace_pos = offset * scale.xzy;
-    vec4 p = vec4(voxelspace_pos + translate, 1.0);
+    vec4 p = vec4(voxelspace_pos + translate.xzy, 1.0);
 
     int normal_index = int(mod(normal.w / 4.0, 6.0));
     vec3 face_normal = mul(model, normal_table[normal_index]).xzy;

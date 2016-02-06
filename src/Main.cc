@@ -12,6 +12,7 @@
 #include "GeomPool.h"
 #include "GeomMesher.h"
 #include "VoxelGenerator.h"
+#include "VisMap.h"
 
 using namespace Oryol;
 
@@ -26,6 +27,7 @@ public:
     void bake_geom(const GeomMesher::Result& meshResult);
 
     int32 frameIndex = 0;
+    int32 lastFrameIndex = -1;
     glm::mat4 view;
     glm::mat4 proj;
     glm::vec3 lightDir;
@@ -34,6 +36,7 @@ public:
     GeomPool geomPool;
     GeomMesher geomMesher;
     VoxelGenerator voxelGenerator;
+    VisMap visMap;
     Array<int> displayGeoms;
 };
 OryolMain(VoxelTest);
@@ -42,20 +45,23 @@ OryolMain(VoxelTest);
 AppState::Code
 VoxelTest::OnInit() {
     auto gfxSetup = GfxSetup::WindowMSAA4(800, 600, "Oryol Voxel Test");
+    gfxSetup.SetPoolSize(GfxResourceType::DrawState, 512);
+    gfxSetup.SetPoolSize(GfxResourceType::Mesh, 512);
     Gfx::Setup(gfxSetup);
-    this->clearState = ClearState::ClearAll(glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), 1.0f, 0);
+    this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
     Dbg::Setup();
 
     const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
     const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
-    this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 1000.0f);
+    this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 3000.0f);
     this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     this->lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
     this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
-    this->voxelGenerator.Setup();
+    this->visMap.Setup();
+
     return App::OnInit();
 }
 
@@ -84,21 +90,38 @@ VoxelTest::OnRunning() {
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
-    this->displayGeoms.Clear();
-    this->geomPool.FreeAll();
+    const int changeFrames = 200;
+    if ((this->frameIndex/changeFrames) != this->lastFrameIndex) {
+        this->lastFrameIndex = this->frameIndex/changeFrames;
 
-    GeomMesher::Result meshResult;
-    this->geomMesher.Start();
-    Volume vol = this->voxelGenerator.Gen(this->frameIndex, 10);
-    this->geomMesher.StartVolume(vol);
-    do {
-        meshResult = this->geomMesher.Meshify();
-        if (meshResult.BufferFull) {
-            this->bake_geom(meshResult);
+        this->displayGeoms.Clear();
+        this->geomPool.FreeAll();
+
+        int lvl = this->lastFrameIndex % 5;
+        int x0, x1, y0, y1;
+        for (int x = 0; x < (1<<lvl); x++) {
+            for (int y = 0; y < (1<<lvl); y++) {
+                this->visMap.Bounds(lvl, x, y, x0, x1, y0, y1);
+                glm::vec3 t = this->visMap.Translation(x0, y0);
+                glm::vec3 s = this->visMap.Scale(x0, x1, y0, y1);
+                Volume vol = this->voxelGenerator.Gen(x0, x1, y0, y1);
+
+                GeomMesher::Result meshResult;
+                this->geomMesher.Start();
+                this->geomMesher.StartVolume(vol);
+                do {
+                    meshResult = this->geomMesher.Meshify();
+                    meshResult.Scale = s*glm::vec3(2.0f, 2.0f, 1.0f);
+                    meshResult.Translate = t*2.0f;
+                    if (meshResult.BufferFull) {
+                        this->bake_geom(meshResult);
+                    }
+                }
+                while (!meshResult.VolumeDone);
+                this->bake_geom(meshResult);
+            }
         }
     }
-    while (!meshResult.VolumeDone);
-    this->bake_geom(meshResult);
 
     const glm::mat4 mvp = this->proj * this->view;
     const int numGeoms = this->displayGeoms.Size();
@@ -131,8 +154,8 @@ VoxelTest::OnCleanup() {
 //------------------------------------------------------------------------------
 void
 VoxelTest::update_camera() {
-    float32 angle = this->frameIndex * 0.005f;
-    const glm::vec3 center(100.0f, 0.0f, 100.0f);
-    const glm::vec3 viewerPos(sin(angle)* 200.0f, 75.0f, cos(angle) * 200.0f);
+    float32 angle = this->frameIndex * 0.0025f;
+    const glm::vec3 center(1024.0, 0.0f, 1024.0f);
+    const glm::vec3 viewerPos(sin(angle)* 1000.0f, 200.0f, cos(angle) * 1000.0f);
     this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }
