@@ -28,14 +28,14 @@ GeomMesher::Start() {
 //------------------------------------------------------------------------------
 void
 GeomMesher::StartVolume(const Volume& vol) {
-    const int strideX = vol.ArraySize.y * vol.ArraySize.z;
-    const int strideY = vol.ArraySize.z;
+    const int strideX = vol.ArraySizeY * vol.ArraySizeZ;
+    const int strideY = vol.ArraySizeZ;
     stbvox_set_input_stride(&this->meshMaker, strideX, strideY);
     stbvox_set_input_range(&this->meshMaker,
-        vol.Offset.x, vol.Offset.y, vol.Offset.z,
-        vol.Offset.x + vol.Size.x,
-        vol.Offset.y + vol.Size.y,
-        vol.Offset.z + vol.Size.z);
+        vol.OffsetX, vol.OffsetY, vol.OffsetZ,
+        vol.OffsetX + vol.SizeX,
+        vol.OffsetY + vol.SizeY,
+        vol.OffsetZ + vol.SizeZ);
     stbvox_input_description* desc = stbvox_get_input_description(&this->meshMaker);
     desc->blocktype = vol.Blocks;
     desc->color = vol.Blocks;

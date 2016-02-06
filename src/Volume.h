@@ -12,8 +12,19 @@ public:
     // start pointers to block types and colors
     Oryol::uint8* Blocks = nullptr;
 
-    glm::ivec3 ArraySize;   // size of of 3D array (world)
-    glm::ivec3 Offset;      // start offset of this volume in 3D array
-    glm::ivec3 Size;        // size of this volume in 3D array
-    glm::ivec3 Translation; // world-space translation of this volume chunk
+    int ArraySizeX = 0;
+    int ArraySizeY = 0;
+    int ArraySizeZ = 0;
+
+    int OffsetX = 0;
+    int OffsetY = 0;
+    int OffsetZ = 0;
+
+    int SizeX = 0;
+    int SizeY = 0;
+    int SizeZ = 0;
+
+    int TranslationX = 0;
+    int TranslationY = 0;
+    int TranslationZ = 0;
 };
