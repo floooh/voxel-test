@@ -13,6 +13,7 @@
 #include "GeomMesher.h"
 #include "VoxelGenerator.h"
 #include "VisMap.h"
+#include "VisTree.h"
 
 using namespace Oryol;
 
@@ -36,7 +37,8 @@ public:
     GeomPool geomPool;
     GeomMesher geomMesher;
     VoxelGenerator voxelGenerator;
-    VisMap visMap;
+//    VisMap visMap;
+    VisTree visTree;
     Array<int> displayGeoms;
 };
 OryolMain(VoxelTest);
@@ -60,7 +62,7 @@ VoxelTest::OnInit() {
     this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
-    this->visMap.Setup();
+    this->visTree.Setup();
 
     return App::OnInit();
 }
@@ -90,37 +92,42 @@ VoxelTest::OnRunning() {
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
+/*
     const int changeFrames = 200;
     if ((this->frameIndex/changeFrames) != this->lastFrameIndex) {
         this->lastFrameIndex = this->frameIndex/changeFrames;
+*/
 
+    if (1 == this->frameIndex) {
         this->displayGeoms.Clear();
         this->geomPool.FreeAll();
 
-        int lvl = this->lastFrameIndex % 5;
+//        int lvl = this->lastFrameIndex % 5;
+        const int lvl = 0;
         int x0, x1, y0, y1;
-        for (int x = 0; x < (1<<lvl); x++) {
-            for (int y = 0; y < (1<<lvl); y++) {
-                this->visMap.Bounds(lvl, x, y, x0, x1, y0, y1);
-                glm::vec3 t = this->visMap.Translation(x0, y0);
-                glm::vec3 s = this->visMap.Scale(x0, x1, y0, y1);
-                Volume vol = this->voxelGenerator.Gen(x0, x1, y0, y1);
+//        for (int x = 0; x < (1<<lvl); x++) {
+//            for (int y = 0; y < (1<<lvl); y++) {
+                VisTree::Address addr(0, 0, 0);
+                VisTree::Bounds bounds = this->visTree.ComputeBounds(addr);
+                glm::vec3 t = this->visTree.Translation(bounds.x0, bounds.y0);
+                glm::vec3 s = this->visTree.Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
+                Volume vol = this->voxelGenerator.Gen(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
 
                 GeomMesher::Result meshResult;
                 this->geomMesher.Start();
                 this->geomMesher.StartVolume(vol);
                 do {
                     meshResult = this->geomMesher.Meshify();
-                    meshResult.Scale = s*glm::vec3(2.0f, 2.0f, 1.0f);
-                    meshResult.Translate = t*2.0f;
+                    meshResult.Scale = s;
+                    meshResult.Translate = t;
                     if (meshResult.BufferFull) {
                         this->bake_geom(meshResult);
                     }
                 }
                 while (!meshResult.VolumeDone);
                 this->bake_geom(meshResult);
-            }
-        }
+//            }
+//        }
     }
 
     const glm::mat4 mvp = this->proj * this->view;
@@ -144,6 +151,7 @@ VoxelTest::OnRunning() {
 //------------------------------------------------------------------------------
 AppState::Code
 VoxelTest::OnCleanup() {
+    this->visTree.Discard();
     this->geomMesher.Discard();
     this->geomPool.Discard();
     Dbg::Discard();
@@ -155,7 +163,7 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameIndex * 0.0025f;
-    const glm::vec3 center(1024.0, 0.0f, 1024.0f);
+    const glm::vec3 center(100.0, 0.0f, 100.0f);
     const glm::vec3 viewerPos(sin(angle)* 1000.0f, 200.0f, cos(angle) * 1000.0f);
     this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }
