@@ -64,6 +64,9 @@ VoxelTest::OnInit() {
     this->geomMesher.Setup();
     this->visTree.Setup(fbWidth, glm::radians(45.0f));
 
+    // TEST
+//    this->visTree.Traverse(1280, 1280);
+
     return App::OnInit();
 }
 

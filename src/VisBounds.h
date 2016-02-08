@@ -5,6 +5,7 @@
     @brief a 2D bounding area in the VisTree
 */
 #include "Core/Types.h"
+#include "glm/exponential.hpp"
 
 class VisBounds {
 public:
@@ -13,17 +14,17 @@ public:
     /// constructor
     VisBounds(int x0_, int x1_, int y0_, int y1_) : x0(x0_), x1(x1_), y0(y0_), y1(y1_) { };
 
-    /// get closest Manhattan distance, 0 if inside
-    int MinDist(int x, int y) const {
+    /// get closest distance, 0 if inside
+    float MinDist(int x, int y) const {
         int dx;
         int dx0 = x - this->x0;
         int dx1 = this->x1 - x;
         if ((dx0 >= 0) && (dx1 >= 0)) {
-            dx = 0;
+            dx = 0;     // inside
         }
         else {
-            if (dx0 < 0) dx0 = -dx0;
-            if (dx1 < 0) dx1 = -dx1;
+            dx0 *= dx0;
+            dx1 *= dx1;
             dx = dx0<dx1 ? dx0:dx1;
         }
 
@@ -34,12 +35,11 @@ public:
             dy = 0;
         }
         else {
-            if (dy0 < 0) dy0 = -dy0;
-            if (dy1 < 0) dy1 = -dy1;
+            dy0 *= dy0;
+            dy1 *= dy1;
             dy = dy0<dy1 ? dy0:dy1;
         }
-
-        int d = dx<dy ? dx:dy;
+        float d = glm::sqrt(dx+dy);
         return d;
     }
 

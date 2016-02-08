@@ -21,7 +21,7 @@ VisTree::Setup(int displayWidth, float fov) {
     for (int i = MaxNumNodes-1; i >=0; i--) {
         this->freeNodes.Add(i);
     }
-    this->rootNode = InvalidIndex;
+    this->rootNode = this->AllocNode();
 }
 
 //------------------------------------------------------------------------------
@@ -97,9 +97,11 @@ void
 VisTree::traverse(int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
     VisNode& node = this->At(nodeIndex);
     float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
-    const float tau = 10.0f;
+    const float tau = 100.0f;
     if ((rho <= tau) || (0 == lvl)) {
-
+        // FIXME: this will become a visible leaf node
+        Log::Info("draw: x0=%d, x1=%d, y0=%d, y1=%d\n",
+            bounds.x0, bounds.x1, bounds.y0, bounds.y1);
     }
     else {
         if (node.IsLeaf()) {
