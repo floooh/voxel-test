@@ -62,7 +62,7 @@ VoxelTest::OnInit() {
     this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
-    this->visTree.Setup();
+    this->visTree.Setup(fbWidth, glm::radians(45.0f));
 
     return App::OnInit();
 }
@@ -98,6 +98,7 @@ VoxelTest::OnRunning() {
         this->lastFrameIndex = this->frameIndex/changeFrames;
 */
 
+/*
     if (1 == this->frameIndex) {
         this->displayGeoms.Clear();
         this->geomPool.FreeAll();
@@ -129,7 +130,7 @@ VoxelTest::OnRunning() {
 //            }
 //        }
     }
-
+*/
     const glm::mat4 mvp = this->proj * this->view;
     const int numGeoms = this->displayGeoms.Size();
     int numQuads = 0;

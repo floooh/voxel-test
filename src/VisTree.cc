@@ -4,12 +4,19 @@
 #include "Pre.h"
 #include "Config.h"
 #include "VisTree.h"
+#include "glm/trigonometric.hpp"
 
 using namespace Oryol;
 
 //------------------------------------------------------------------------------
 void
-VisTree::Setup() {
+VisTree::Setup(int displayWidth, float fov) {
+
+    // compute K for screen space error computation
+    // (see: http://tulrich.com/geekstuff/sig-notes.pdf )
+    this->K = float(displayWidth) / (2.0f * glm::tan(fov*0.5f));
+
+    // setup VisNodes pool
     this->freeNodes.Reserve(MaxNumNodes);
     for (int i = MaxNumNodes-1; i >=0; i--) {
         this->freeNodes.Add(i);
@@ -24,137 +31,106 @@ VisTree::Discard() {
 }
 
 //------------------------------------------------------------------------------
+VisNode&
+VisTree::At(int16 nodeIndex) {
+    o_assert_dbg((nodeIndex >= 0) && (nodeIndex < MaxNumNodes));
+    return this->nodes[nodeIndex];
+}
+
+//------------------------------------------------------------------------------
 int16
 VisTree::AllocNode() {
     int16 index = this->freeNodes.PopBack();
-    Node& node = this->nodes[index];
-    node.flags = Node::Flags::None;
-    for (int i = 0; i < 4; i++) {
-        node.child[i] = InvalidIndex;
-    }
+    VisNode& node = this->nodes[index];
+    node.Reset();
     return index;
 }
 
 //------------------------------------------------------------------------------
 void
-VisTree::FreeGeoms(GeomPool& geomPool, int16 nodeIndex) {
-    Node& curNode = this->nodes[nodeIndex];
-    o_assert_dbg(curNode.flags & Node::Leaf);
-    for (int i=0; i<4; i++) {
-        if (curNode.geom[i] != InvalidIndex) {
-            geomPool.Free(curNode.geom[i]);
-            curNode.geom[i] = InvalidIndex;
-        }
+VisTree::Split(int16 nodeIndex) {
+    VisNode& node = this->At(nodeIndex);
+    o_assert_dbg(node.IsLeaf());
+    for (int i = 0; i < VisNode::NumChilds; i++) {
+        node.childs[i] = this->AllocNode();
     }
 }
 
 //------------------------------------------------------------------------------
 void
-VisTree::FreeNodes(GeomPool& geomPool, int16 index) {
-    o_assert_dbg(InvalidIndex != index);
-    Node& curNode = this->nodes[index];
-    if (curNode.IsLeaf()) {
-        this->FreeGeoms(geomPool, index);
+VisTree::Merge(int16 nodeIndex) {
+    VisNode& node = this->At(nodeIndex);
+    o_assert_dbg(InvalidIndex == node.geoms[0]);
+    for (int i = 0; i < VisNode::NumChilds; i++) {
+        if (InvalidIndex != node.childs[i]) {
+            this->Merge(node.childs[i]);
+            this->freeNodes.Add(node.childs[i]);
+            node.childs[i] = InvalidIndex;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+float
+VisTree::ScreenSpaceError(const VisBounds& bounds, int lvl, int posX, int posY) const {
+    // see http://tulrich.com/geekstuff/sig-notes.pdf
+
+    // we just fudge the geometric error of the chunk by doubling it for
+    // each tree level
+    const float delta = float(1<<lvl);
+    const float D = float(bounds.MinDist(posX, posY)+1);
+    float rho = (delta/D) * this->K;
+    return rho;
+}
+
+//------------------------------------------------------------------------------
+void
+VisTree::Traverse(int posX, int posY) {
+    int lvl = NumLevels;
+    int nodeIndex = this->rootNode;
+    VisBounds bounds = VisTree::Bounds(lvl, 0, 0);
+    this->traverse(nodeIndex, bounds, lvl, posX, posY);
+}
+
+//------------------------------------------------------------------------------
+void
+VisTree::traverse(int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
+    VisNode& node = this->At(nodeIndex);
+    float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
+    const float tau = 10.0f;
+    if ((rho <= tau) || (0 == lvl)) {
+
     }
     else {
-        for (int i = 0; i < 4; i++) {
-            if (InvalidIndex != curNode.child[i]) {
-                this->FreeNodes(geomPool, curNode.child[i]);
-                curNode.child[i] = InvalidIndex;
-            }
+        if (node.IsLeaf()) {
+            this->Split(nodeIndex);
         }
-    }
-    this->freeNodes.Add(index);
-}
-
-//------------------------------------------------------------------------------
-void
-VisTree::UpdateLod(GeomPool& geomPool, GeomMesher& geomMesher, uint8 x, uint8 y) {
-    Address addr(0, x, y);
-    Bounds bounds(0, (1<<NumLevels), 0, (1<<NumLevels));
-    this->updateLod(geomPool, geomMesher, this->rootNode, bounds, addr);
-}
-
-//------------------------------------------------------------------------------
-void
-VisTree::updateLod(GeomPool& geomPool, GeomMesher& geomMesher, int16 nodeIndex, const Bounds& bounds, const Address& addr) {
-
-    // if execution reached here, this node cannot be a leaf node
-    Node& curNode = this->nodes[nodeIndex];
-    if (curNode.IsLeaf()) {
-        this->FreeGeoms(geomPool, nodeIndex);
-        curNode.flags &= ~Node::Leaf;
-    }
-
-    // FIXME: for each quad, if addr is inside quad, recurse,
-    // otherwise compute distance between quad bounds and 'addr' and
-    // compute an LOD value
-    int halfX = (bounds.x1 - bounds.x0)/2;
-    int halfY = (bounds.y1 - bounds.y0)/2;
-    for (int x=0; x<2; x++) {
-        for (int y=0; y<2; y++) {
-
-            // if not happened yet, allocate child nodes
-            const int childIndex = (y<<1) | x;
-            const int childLevel = addr.level + 1;
-            if (InvalidIndex == curNode.child[childIndex]) {
-                curNode.child[childIndex] = this->AllocNode();
-            }
-
-            Bounds childBounds;
-            childBounds.x0 = bounds.x0 + x*halfX;
-            childBounds.x1 = bounds.x1 + halfX;
-            childBounds.y0 = bounds.y0 + y*halfY;
-            childBounds.y1 = bounds.y1 + halfY;
-            if (childBounds.Inside(addr.x, addr.y)) {
-                if (childLevel < NumLevels) {
-                    // recurse
-                    Address childAddr;
-                    childAddr.level = childLevel;
-                    childAddr.x = addr.x;
-                    childAddr.y = addr.y;
-                    this->updateLod(geomPool, geomMesher, curNode.child[childIndex], childBounds, childAddr);
-                }
-            }
-            else {
-                // setup direct child as leaf node
-                if (!this->nodes[curNode.child[childIndex]].IsLeaf()) {
-                    this->CreateLeaf(geomPool, curNode.child[childIndex], childBounds);
-                    o_assert_dbg(this->nodes[curNode.child[childIndex]].IsLeaf());
-                }
+        const int halfX = (bounds.x1 - bounds.x0)/2;
+        const int halfY = (bounds.y1 - bounds.y0)/2;
+        for (int x = 0; x < 2; x++) {
+            for (int y = 0; y < 2; y++) {
+                VisBounds childBounds;
+                childBounds.x0 = bounds.x0 + x*halfX;
+                childBounds.x1 = childBounds.x0 + halfX;
+                childBounds.y0 = bounds.y0 + y*halfY;
+                childBounds.y1 = childBounds.y0 + halfY;
+                const int childIndex = (y<<1)|x;
+                this->traverse(node.childs[childIndex], childBounds, lvl-1, posX, posY);
             }
         }
     }
 }
 
 //------------------------------------------------------------------------------
-void
-VisTree::CreateLeaf(GeomPool& geomPool, int16 nodeIndex, const Bounds& bounds) {
-    o_assert_dbg(!this->nodes[nodeIndex].IsLeaf());
-
-    Node& curNode = this->nodes[nodeIndex];
-
-    // recursively free any child nodes
-    for (int i = 0; i < 4; i++) {
-        if (InvalidIndex != curNode.child[i]) {
-            this->FreeNodes(geomPool, curNode.child[i]);
-            curNode.child[i] = InvalidIndex;
-        }
-    }
-
-    FIXME FIXME FIXME
-}
-
-//------------------------------------------------------------------------------
-VisTree::Bounds
-VisTree::ComputeBounds(const Address& addr) {
-    o_assert_dbg(addr.level < NumLevels);
-    int shift = NumLevels - addr.level - 1;
-    int dim = (1<<shift) * Config::ChunkSizeXY;
-    Bounds bounds;
-    bounds.x0 = (addr.x>>shift) * dim;
+VisBounds
+VisTree::Bounds(int lvl, int x, int y) {
+    o_assert_dbg(lvl <= NumLevels);
+    // level 0 is most detailed, level == NumLevels is the root node
+    int dim = (1<<lvl) * Config::ChunkSizeXY;
+    VisBounds bounds;
+    bounds.x0 = (x>>lvl) * dim;
     bounds.x1 = bounds.x0 + dim;
-    bounds.y0 = (addr.y>>shift) * dim;
+    bounds.y0 = (y>>lvl) * dim;
     bounds.y1 = bounds.y0 + dim;
     return bounds;
 }

@@ -6,6 +6,7 @@ fips_begin_app(VoxelTest windowed)
         Geom.h Geom.cc
         GeomPool.h GeomPool.cc
         GeomMesher.h GeomMesher.cc
+        VisNode.h VisBounds.h
         VisMap.h VisMap.cc
         VisTree.h VisTree.cc
         stb_voxel_render.h)
