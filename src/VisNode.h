@@ -9,8 +9,9 @@
 class VisNode {
 public:
     enum Flags {
-        CullInside = (1<<1),    // fully inside view volume
-        CullOutside = (1<<2),   // fully outside view volume
+        CullInside = (1<<0),    // fully inside view volume
+        CullOutside = (1<<1),   // fully outside view volume
+        GeomPending = (1<<2),   // geom is currently prepared for drawing
     };
     static const int NumGeoms = 3;
     static const int NumChilds = 4;
@@ -27,9 +28,21 @@ public:
         for (int i = 0; i < NumChilds; i++) {
             this->childs[i] = Oryol::InvalidIndex;
         }
-    };
+    }
     /// return true if this is a leaf node
     bool IsLeaf() const {
         return Oryol::InvalidIndex == this->childs[0];
-    };
+    }
+    /// return true if has node has a draw geom assigned
+    bool HasGeom() const {
+        return Oryol::InvalidIndex != this->geoms[0];
+    }
+    /// return true if the node needs geoms to be generated
+    bool NeedsGeom() const {
+        return (Oryol::InvalidIndex == this->geoms[0]) && !(this->flags & GeomPending);
+    }
+    /// return true if node is waiting for geom
+    bool WaitsForGeom() const {
+        return this->flags & GeomPending;
+    }
 };

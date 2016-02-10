@@ -6,14 +6,20 @@
 */
 #include "Volume.h"
 #include "Config.h"
+#include "VisBounds.h"
 
 class VoxelGenerator {
 public:
     static const int VolumeSizeXY = Config::ChunkSizeXY + 2;
     static const int VolumeSizeZ = Config::ChunkSizeZ + 2;
 
-    /// generate voxel data
-    Volume Gen(int x0, int x1, int y0, int y1);
+    /// generate simplex noise voxel data
+    Volume GenSimplex(const VisBounds& bounds);
+    /// generate debug voxel data
+    Volume GenDebug(const VisBounds& bounds, int lvl);
+
+    /// initialize a volume object
+    Volume initVolume();
 
     Oryol::uint8 voxels[VolumeSizeXY][VolumeSizeXY][VolumeSizeZ];
 };

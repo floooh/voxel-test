@@ -16,8 +16,10 @@ VisTree::Setup(int displayWidth, float fov) {
     // (see: http://tulrich.com/geekstuff/sig-notes.pdf )
     this->K = float(displayWidth) / (2.0f * glm::tan(fov*0.5f));
 
-    // setup VisNodes pool
+    this->drawNodes.Reserve(MaxNumNodes);
     this->freeNodes.Reserve(MaxNumNodes);
+    this->geomGenJobs.Reserve(MaxNumNodes);
+    this->freeGeoms.Reserve(MaxNumNodes);
     for (int i = MaxNumNodes-1; i >=0; i--) {
         this->freeNodes.Add(i);
     }
@@ -32,7 +34,7 @@ VisTree::Discard() {
 
 //------------------------------------------------------------------------------
 VisNode&
-VisTree::At(int16 nodeIndex) {
+VisTree::NodeAt(int16 nodeIndex) {
     o_assert_dbg((nodeIndex >= 0) && (nodeIndex < MaxNumNodes));
     return this->nodes[nodeIndex];
 }
@@ -49,23 +51,29 @@ VisTree::AllocNode() {
 //------------------------------------------------------------------------------
 void
 VisTree::Split(int16 nodeIndex) {
-    VisNode& node = this->At(nodeIndex);
+    VisNode& node = this->NodeAt(nodeIndex);
     o_assert_dbg(node.IsLeaf());
     for (int i = 0; i < VisNode::NumChilds; i++) {
         node.childs[i] = this->AllocNode();
     }
+    node.flags &= ~VisNode::GeomPending;
 }
 
 //------------------------------------------------------------------------------
 void
 VisTree::Merge(int16 nodeIndex) {
-    VisNode& node = this->At(nodeIndex);
-    o_assert_dbg(InvalidIndex == node.geoms[0]);
-    for (int i = 0; i < VisNode::NumChilds; i++) {
-        if (InvalidIndex != node.childs[i]) {
-            this->Merge(node.childs[i]);
-            this->freeNodes.Add(node.childs[i]);
-            node.childs[i] = InvalidIndex;
+    VisNode& node = this->NodeAt(nodeIndex);
+    for (int childIndex = 0; childIndex < VisNode::NumChilds; childIndex++) {
+        if (InvalidIndex != node.childs[childIndex]) {
+            VisNode& childNode = this->NodeAt(node.childs[childIndex]);
+            for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
+                if (InvalidIndex != childNode.geoms[geomIndex]) {
+                    this->freeGeoms.Add(childNode.geoms[geomIndex]);
+                }
+            }
+            this->freeNodes.Add(node.childs[childIndex]);
+            this->Merge(node.childs[childIndex]);
+            node.Reset();
         }
     }
 }
@@ -89,19 +97,18 @@ VisTree::Traverse(int posX, int posY) {
     int lvl = NumLevels;
     int nodeIndex = this->rootNode;
     VisBounds bounds = VisTree::Bounds(lvl, 0, 0);
+    this->drawNodes.Clear();
     this->traverse(nodeIndex, bounds, lvl, posX, posY);
 }
 
 //------------------------------------------------------------------------------
 void
 VisTree::traverse(int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
-    VisNode& node = this->At(nodeIndex);
+    VisNode& node = this->NodeAt(nodeIndex);
     float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
-    const float tau = 100.0f;
+    const float tau = 10000.0f;
     if ((rho <= tau) || (0 == lvl)) {
-        // FIXME: this will become a visible leaf node
-        Log::Info("draw: x0=%d, x1=%d, y0=%d, y1=%d\n",
-            bounds.x0, bounds.x1, bounds.y0, bounds.y1);
+        this->gatherDrawNode(nodeIndex, lvl, bounds);
     }
     else {
         if (node.IsLeaf()) {
@@ -120,6 +127,39 @@ VisTree::traverse(int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, i
                 this->traverse(node.childs[childIndex], childBounds, lvl-1, posX, posY);
             }
         }
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+VisTree::gatherDrawNode(int16 nodeIndex, int lvl, const VisBounds& bounds) {
+    this->drawNodes.Add(nodeIndex);
+    VisNode& node = this->NodeAt(nodeIndex);
+    if (node.NeedsGeom()) {
+        // enqueue a new geom-generation job
+        node.flags |= VisNode::GeomPending;
+        glm::vec3 scale = Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
+        glm::vec3 trans = Translation(bounds.x0, bounds.y0);
+        this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
+    }
+    this->Merge(nodeIndex);
+}
+
+//------------------------------------------------------------------------------
+void
+VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
+    VisNode& node = this->NodeAt(nodeIndex);
+    if (node.WaitsForGeom()) {
+        for (int i = 0; i < VisNode::NumGeoms; i++) {
+            o_assert_dbg(InvalidIndex == node.geoms[i]);
+            if (i < numGeoms) {
+                node.geoms[i] = geoms[i];
+            }
+            else {
+                node.geoms[i] = InvalidIndex;
+            }
+        }
+        node.flags &= ~VisNode::GeomPending;
     }
 }
 

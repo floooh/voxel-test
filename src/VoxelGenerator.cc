@@ -15,10 +15,7 @@ using namespace Oryol;
 
 //------------------------------------------------------------------------------
 Volume
-VoxelGenerator::Gen(int x0, int x1, int y0, int y1) {
-
-    o_assert_dbg((x1 > x0) && (y1 > y0));
-
+VoxelGenerator::initVolume() {
     Volume vol;
     vol.Blocks = (uint8*) this->voxels;
     vol.ArraySizeX = vol.ArraySizeY = VolumeSizeXY;
@@ -26,10 +23,22 @@ VoxelGenerator::Gen(int x0, int x1, int y0, int y1) {
     vol.SizeX = vol.SizeY = Config::ChunkSizeXY;
     vol.SizeZ = Config::ChunkSizeZ;
     vol.OffsetX = vol.OffsetY = vol.OffsetZ = 1;
+    return vol;
+}
+
+//------------------------------------------------------------------------------
+Volume
+VoxelGenerator::GenSimplex(const VisBounds& bounds) {
+
+    const int x0 = bounds.x0;
+    const int x1 = bounds.x1;
+    const int y0 = bounds.y0;
+    const int y1 = bounds.y1;
 
     const float voxelSizeX = (x1-x0)/float(Config::ChunkSizeXY);
     const float voxelSizeY = (y1-y0)/float(Config::ChunkSizeXY);
 
+    Volume vol = this->initVolume();
     glm::vec2 p;
     p.x = (x0-voxelSizeX) / float(Config::MapDimVoxels);
     const float dx = ((x1-x0)+2*voxelSizeX) / float(Config::MapDimVoxels*VolumeSizeXY);
@@ -44,6 +53,25 @@ VoxelGenerator::Gen(int x0, int x1, int y0, int y1) {
             this->voxels[x][y][0] = 1;
             for (int z = 1; z < VolumeSizeZ; z++) {
                 this->voxels[x][y][z] = z < ni ? z:0;
+            }
+        }
+    }
+    return vol;
+}
+
+//------------------------------------------------------------------------------
+Volume
+VoxelGenerator::GenDebug(const VisBounds& bounds, int lvl) {
+    int8 blockType = lvl+1;
+    Volume vol = this->initVolume();
+    Memory::Clear(this->voxels, sizeof(this->voxels));
+    for (int x = 0; x < VolumeSizeXY; x++) {
+        for (int y = 0; y < VolumeSizeXY; y++) {
+            if ((x==0)||(y==0)||(x==VolumeSizeXY-1)||(y==VolumeSizeXY-1)) {
+                this->voxels[x][y][1] = 2*blockType;
+            }
+            else {
+                this->voxels[x][y][1] = blockType;
             }
         }
     }

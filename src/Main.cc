@@ -25,7 +25,7 @@ public:
 
     void update_camera();
     void init_blocks(int frameIndex);
-    void bake_geom(const GeomMesher::Result& meshResult);
+    int bake_geom(const GeomMesher::Result& meshResult);
 
     int32 frameIndex = 0;
     int32 lastFrameIndex = -1;
@@ -39,7 +39,6 @@ public:
     VoxelGenerator voxelGenerator;
 //    VisMap visMap;
     VisTree visTree;
-    Array<int> displayGeoms;
 };
 OryolMain(VoxelTest);
 
@@ -55,23 +54,19 @@ VoxelTest::OnInit() {
 
     const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
     const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
-    this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 3000.0f);
+    this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
     this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     this->lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
-    this->displayGeoms.Reserve(256);
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
     this->visTree.Setup(fbWidth, glm::radians(45.0f));
-
-    // TEST
-//    this->visTree.Traverse(1280, 1280);
 
     return App::OnInit();
 }
 
 //------------------------------------------------------------------------------
-void
+int
 VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
     if (meshResult.NumQuads > 0) {
         int geomIndex = this->geomPool.Alloc();
@@ -83,8 +78,9 @@ VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
         geom.VSParams.Scale = meshResult.Scale;
         geom.VSParams.Translate = meshResult.Translate;
         geom.VSParams.TexTranslate = meshResult.TexTranslate;
-        this->displayGeoms.Add(geomIndex);
+        return geomIndex;
     }
+    return InvalidIndex;
 }
 
 //------------------------------------------------------------------------------
@@ -95,55 +91,60 @@ VoxelTest::OnRunning() {
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
-/*
-    const int changeFrames = 200;
-    if ((this->frameIndex/changeFrames) != this->lastFrameIndex) {
-        this->lastFrameIndex = this->frameIndex/changeFrames;
-*/
-
-/*
-    if (1 == this->frameIndex) {
-        this->displayGeoms.Clear();
-        this->geomPool.FreeAll();
-
-//        int lvl = this->lastFrameIndex % 5;
-        const int lvl = 0;
-        int x0, x1, y0, y1;
-//        for (int x = 0; x < (1<<lvl); x++) {
-//            for (int y = 0; y < (1<<lvl); y++) {
-                VisTree::Address addr(0, 0, 0);
-                VisTree::Bounds bounds = this->visTree.ComputeBounds(addr);
-                glm::vec3 t = this->visTree.Translation(bounds.x0, bounds.y0);
-                glm::vec3 s = this->visTree.Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
-                Volume vol = this->voxelGenerator.Gen(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
-
-                GeomMesher::Result meshResult;
-                this->geomMesher.Start();
-                this->geomMesher.StartVolume(vol);
-                do {
-                    meshResult = this->geomMesher.Meshify();
-                    meshResult.Scale = s;
-                    meshResult.Translate = t;
-                    if (meshResult.BufferFull) {
-                        this->bake_geom(meshResult);
+    // traverse the vis-tree
+    this->visTree.Traverse(192, 192);
+    // free any geoms to be freed
+    while (!this->visTree.freeGeoms.Empty()) {
+        int geom = this->visTree.freeGeoms.PopBack();
+        this->geomPool.Free(geom);
+    }
+    // init new geoms
+    if (!this->visTree.geomGenJobs.Empty()) {
+        this->geomMesher.Start();
+        while (!this->visTree.geomGenJobs.Empty()) {
+            int16 geoms[VisNode::NumGeoms];
+            int numGeoms = 0;
+            VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
+            Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
+            GeomMesher::Result meshResult;
+            this->geomMesher.StartVolume(vol);
+            do {
+                meshResult = this->geomMesher.Meshify();
+                meshResult.Scale = job.Scale;
+                meshResult.Translate = job.Translate;
+                if (meshResult.BufferFull) {
+                    int geom = this->bake_geom(meshResult);
+                    if (numGeoms < VisNode::NumGeoms) {
+                        geoms[numGeoms++] = geom;
                     }
                 }
-                while (!meshResult.VolumeDone);
-                this->bake_geom(meshResult);
-//            }
-//        }
+            }
+            while (!meshResult.VolumeDone);
+            int geom = this->bake_geom(meshResult);
+            if (numGeoms < VisNode::NumGeoms) {
+                geoms[numGeoms++] = geom;
+            }
+            this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
+        }
     }
-*/
+
     const glm::mat4 mvp = this->proj * this->view;
-    const int numGeoms = this->displayGeoms.Size();
+    const int numDrawNodes = this->visTree.drawNodes.Size();
     int numQuads = 0;
-    for (int i = 0; i < numGeoms; i++) {
-        Geom& geom = this->geomPool.GeomAt(this->displayGeoms[i]);
-        geom.VSParams.ModelViewProjection = mvp;
-        Gfx::ApplyDrawState(geom.DrawState);
-        Gfx::ApplyUniformBlock(geom.VSParams);
-        Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
-        numQuads += geom.NumQuads;
+    int numGeoms = 0;
+    for (int i = 0; i < numDrawNodes; i++) {
+        const VisNode& node = this->visTree.NodeAt(this->visTree.drawNodes[i]);
+        for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
+            if (node.geoms[geomIndex] != InvalidIndex) {
+                Geom& geom = this->geomPool.GeomAt(node.geoms[geomIndex]);
+                geom.VSParams.ModelViewProjection = mvp;
+                Gfx::ApplyDrawState(geom.DrawState);
+                Gfx::ApplyUniformBlock(geom.VSParams);
+                Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
+                numQuads += geom.NumQuads;
+                numGeoms++;
+            }
+        }
     }
     Dbg::PrintF("draws: %d\n\rtris: %d", numGeoms, numQuads*2);
     Dbg::DrawTextBuffer();
@@ -167,7 +168,7 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameIndex * 0.0025f;
-    const glm::vec3 center(100.0, 0.0f, 100.0f);
-    const glm::vec3 viewerPos(sin(angle)* 1000.0f, 200.0f, cos(angle) * 1000.0f);
+    const glm::vec3 center(192.0, 0.0f, 192.0f);
+    const glm::vec3 viewerPos(sin(angle)* 600.0f, 300.0f, cos(angle) * 600.0f);
     this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }
