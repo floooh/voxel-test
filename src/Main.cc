@@ -106,6 +106,7 @@ VoxelTest::OnRunning() {
             int numGeoms = 0;
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
+//Volume vol = this->voxelGenerator.GenDebug(job.Bounds, job.Level);
             GeomMesher::Result meshResult;
             this->geomMesher.StartVolume(vol);
             do {

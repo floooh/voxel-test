@@ -68,10 +68,10 @@ VoxelGenerator::GenDebug(const VisBounds& bounds, int lvl) {
     for (int x = 0; x < VolumeSizeXY; x++) {
         for (int y = 0; y < VolumeSizeXY; y++) {
             if ((x==0)||(y==0)||(x==VolumeSizeXY-1)||(y==VolumeSizeXY-1)) {
-                this->voxels[x][y][1] = 2*blockType;
+                this->voxels[x][y][lvl+1] = 2*blockType;
             }
             else {
-                this->voxels[x][y][1] = blockType;
+                this->voxels[x][y][lvl+1] = blockType;
             }
         }
     }
