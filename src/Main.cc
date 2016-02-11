@@ -12,10 +12,11 @@
 #include "GeomPool.h"
 #include "GeomMesher.h"
 #include "VoxelGenerator.h"
-#include "VisMap.h"
 #include "VisTree.h"
 
 using namespace Oryol;
+
+const int MaxChunksGeneratedPerFrame = 2;
 
 class VoxelTest : public App {
 public:
@@ -37,8 +38,9 @@ public:
     GeomPool geomPool;
     GeomMesher geomMesher;
     VoxelGenerator voxelGenerator;
-//    VisMap visMap;
     VisTree visTree;
+    int viewerX = 4096;
+    int viewerY = 4096;
 };
 OryolMain(VoxelTest);
 
@@ -56,7 +58,7 @@ VoxelTest::OnInit() {
     const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
     this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
     this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    this->lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+    this->lightDir = glm::normalize(glm::vec3(0.5f, 1.0f, 0.25f));
 
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
@@ -87,12 +89,14 @@ VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
 AppState::Code
 VoxelTest::OnRunning() {
     this->frameIndex++;
+    this->viewerX = (this->viewerX + 1) % 8192;
+
     this->update_camera();
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
     // traverse the vis-tree
-    this->visTree.Traverse(192, 192);
+    this->visTree.Traverse(this->viewerX, this->viewerY);
     // free any geoms to be freed
     while (!this->visTree.freeGeoms.Empty()) {
         int geom = this->visTree.freeGeoms.PopBack();
@@ -100,14 +104,16 @@ VoxelTest::OnRunning() {
     }
     // init new geoms
     if (!this->visTree.geomGenJobs.Empty()) {
-        this->geomMesher.Start();
-        while (!this->visTree.geomGenJobs.Empty()) {
+        int numProcessedJobs = 0;
+        while ((numProcessedJobs < MaxChunksGeneratedPerFrame) && !this->visTree.geomGenJobs.Empty()) {
+            numProcessedJobs++;
             int16 geoms[VisNode::NumGeoms];
             int numGeoms = 0;
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
 //Volume vol = this->voxelGenerator.GenDebug(job.Bounds, job.Level);
             GeomMesher::Result meshResult;
+            this->geomMesher.Start();
             this->geomMesher.StartVolume(vol);
             do {
                 meshResult = this->geomMesher.Meshify();
@@ -115,14 +121,14 @@ VoxelTest::OnRunning() {
                 meshResult.Translate = job.Translate;
                 if (meshResult.BufferFull) {
                     int geom = this->bake_geom(meshResult);
-                    if (numGeoms < VisNode::NumGeoms) {
+                    if ((InvalidIndex != geom) && (numGeoms < VisNode::NumGeoms)) {
                         geoms[numGeoms++] = geom;
                     }
                 }
             }
             while (!meshResult.VolumeDone);
             int geom = this->bake_geom(meshResult);
-            if (numGeoms < VisNode::NumGeoms) {
+            if ((InvalidIndex != geom) && (numGeoms < VisNode::NumGeoms)) {
                 geoms[numGeoms++] = geom;
             }
             this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
@@ -147,7 +153,13 @@ VoxelTest::OnRunning() {
             }
         }
     }
-    Dbg::PrintF("draws: %d\n\rtris: %d", numGeoms, numQuads*2);
+    Dbg::PrintF("draws: %d\n\r"
+                "tris: %d\n\r"
+                "avail geoms: %d\n\r"
+                "avail nodes: %d\n\r",
+                numGeoms, numQuads*2,
+                this->geomPool.freeGeoms.Size(),
+                this->visTree.freeNodes.Size());
     Dbg::DrawTextBuffer();
     Gfx::CommitFrame();
 
@@ -169,7 +181,7 @@ VoxelTest::OnCleanup() {
 void
 VoxelTest::update_camera() {
     float32 angle = this->frameIndex * 0.0025f;
-    const glm::vec3 center(192.0, 0.0f, 192.0f);
-    const glm::vec3 viewerPos(sin(angle)* 600.0f, 300.0f, cos(angle) * 600.0f);
+    const glm::vec3 center(this->viewerX, 32.0f, this->viewerY);
+    const glm::vec3 viewerPos(sin(angle)* 200.0f, 48.0f, cos(angle) * 200.0f);
     this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
 }

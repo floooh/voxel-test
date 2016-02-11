@@ -7,7 +7,6 @@ fips_begin_app(VoxelTest windowed)
         GeomPool.h GeomPool.cc
         GeomMesher.h GeomMesher.cc
         VisNode.h VisBounds.h
-        VisMap.h VisMap.cc
         VisTree.h VisTree.cc
         stb_voxel_render.h)
     oryol_shader(shaders.shd)

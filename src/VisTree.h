@@ -15,7 +15,7 @@
 class VisTree {
 public:
     /// number of levels, the most detailed level is 0
-    static const int NumLevels = 4;
+    static const int NumLevels = 8;
 
     /// setup the vistree
     void Setup(int displayWidth, float fov);
@@ -26,6 +26,8 @@ public:
     VisNode& NodeAt(Oryol::int16 nodeIndex);
     /// allocate and init a node
     Oryol::int16 AllocNode();
+    /// free any geoms in a node (non-recursive)
+    void FreeGeoms(Oryol::int16 nodeIndex);
     /// split a node (create child nodes)
     void Split(Oryol::int16 nodeIndex);
     /// merge a node, frees all child nodes recursively
@@ -63,7 +65,7 @@ public:
     };
 
     float K;
-    static const int MaxNumNodes = 2048;
+    static const int MaxNumNodes = 512;
     VisNode nodes[MaxNumNodes];
     Oryol::Array<Oryol::int16> freeNodes;
     Oryol::Array<Oryol::int16> drawNodes;

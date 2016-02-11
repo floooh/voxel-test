@@ -46,9 +46,9 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
     for (int x = 0; x < VolumeSizeXY; x++, p.x+=dx) {
         p.y = (y0-voxelSizeY) / float(Config::MapDimVoxels);
         for (int y = 0; y < VolumeSizeXY; y++, p.y+=dy) {
-            float n = glm::simplex(p*2.0f);
-            n += glm::simplex(p*7.0f)*0.5f;
-            n += glm::simplex(p*20.0f)*0.25f;
+            float n = glm::simplex(p*1.5f);
+            n += glm::simplex(p*2.5f)*0.35f;
+            n += glm::simplex(p*10.0f)*0.25f;
             int8 ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * 31;
             this->voxels[x][y][0] = 1;
             for (int z = 1; z < VolumeSizeZ; z++) {
@@ -67,7 +67,7 @@ VoxelGenerator::GenDebug(const VisBounds& bounds, int lvl) {
     Memory::Clear(this->voxels, sizeof(this->voxels));
     for (int x = 0; x < VolumeSizeXY; x++) {
         for (int y = 0; y < VolumeSizeXY; y++) {
-            if ((x==0)||(y==0)||(x==VolumeSizeXY-1)||(y==VolumeSizeXY-1)) {
+            if ((x<=1)||(y<=1)||(x>=VolumeSizeXY-2)||(y>=VolumeSizeXY-2)) {
                 this->voxels[x][y][lvl+1] = 2*blockType;
             }
             else {

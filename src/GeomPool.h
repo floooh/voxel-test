@@ -30,7 +30,6 @@ public:
     /// get geom by index (read-only)
     const Geom& GeomAt(int index) const;
 
-private:
     Oryol::Id indexMesh;
     Oryol::StaticArray<Geom, NumGeoms> geoms;
     Oryol::Array<int> freeGeoms;
@@ -39,18 +38,22 @@ private:
 //------------------------------------------------------------------------------
 inline int
 GeomPool::Alloc() {
-    return this->freeGeoms.PopBack();
+    int index = this->freeGeoms.PopBack();
+    o_assert_dbg(Oryol::InvalidIndex != index);
+    return index;
 }
 
 //------------------------------------------------------------------------------
 inline void
 GeomPool::Free(int index) {
+    o_assert_dbg(Oryol::InvalidIndex != index);
     this->freeGeoms.Add(index);
 }
 
 //------------------------------------------------------------------------------
 inline Geom&
 GeomPool::GeomAt(int index) {
+    o_assert_dbg(Oryol::InvalidIndex != index);
     return this->geoms[index];
 }
 
