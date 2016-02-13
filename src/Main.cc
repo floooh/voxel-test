@@ -209,7 +209,7 @@ VoxelTest::handle_input() {
             move.z -= vel;
         }
         if (mouse.ButtonPressed(Mouse::Button::LMB) || mouse.ButtonPressed(Mouse::Button::RMB)) {
-            rot = mouse.Movement * glm::vec2(-0.004, -0.003f);
+            rot = mouse.Movement * glm::vec2(-0.01, -0.007f);
         }
     }
     this->camera.MoveRotate(move, rot);
