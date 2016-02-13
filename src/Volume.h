@@ -27,4 +27,7 @@ public:
     int TranslationX = 0;
     int TranslationY = 0;
     int TranslationZ = 0;
+
+    Oryol::int8 MinZ = 127;
+    Oryol::int8 MaxZ = -127;
 };

@@ -9,9 +9,8 @@
 class VisNode {
 public:
     enum Flags {
-        CullInside = (1<<0),    // fully inside view volume
-        CullOutside = (1<<1),   // fully outside view volume
-        GeomPending = (1<<2),   // geom is currently prepared for drawing
+        GeomPending = (1<<0),   // geom is currently prepared for drawing
+        OutOfBounds = (1<<1)   // entire node is below min-height or above max-height
     };
     static const int NumGeoms = 3;
     static const int NumChilds = 4;
@@ -44,5 +43,9 @@ public:
     /// return true if node is waiting for geom
     bool WaitsForGeom() const {
         return this->flags & GeomPending;
+    }
+    /// return true if out-of-bounds flag is set
+    bool IsOutOfBounds() const {
+        return this->flags & OutOfBounds;
     }
 };

@@ -17,7 +17,7 @@
 
 using namespace Oryol;
 
-const int MaxChunksGeneratedPerFrame = 2;
+const int MaxChunksGeneratedPerFrame = 1;
 
 class VoxelTest : public App {
 public:
@@ -46,8 +46,8 @@ OryolMain(VoxelTest);
 AppState::Code
 VoxelTest::OnInit() {
     auto gfxSetup = GfxSetup::WindowMSAA4(800, 600, "Oryol Voxel Test");
-    gfxSetup.SetPoolSize(GfxResourceType::DrawState, 512);
-    gfxSetup.SetPoolSize(GfxResourceType::Mesh, 512);
+    gfxSetup.SetPoolSize(GfxResourceType::DrawState, 1024);
+    gfxSetup.SetPoolSize(GfxResourceType::Mesh, 1024);
     Gfx::Setup(gfxSetup);
     this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
     Input::Setup();
@@ -55,7 +55,7 @@ VoxelTest::OnInit() {
 
     const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
     const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
-    this->camera.Setup(glm::vec3(4096, 32, 4096), glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
+    this->camera.Setup(glm::vec3(4096, 128, 4096), glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
     this->lightDir = glm::normalize(glm::vec3(0.5f, 1.0f, 0.25f));
 
     this->geomPool.Setup(gfxSetup);
@@ -108,26 +108,33 @@ VoxelTest::OnRunning() {
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
 //Volume vol = this->voxelGenerator.GenDebug(job.Bounds, job.Level);
-            GeomMesher::Result meshResult;
-            this->geomMesher.Start();
-            this->geomMesher.StartVolume(vol);
-            do {
-                meshResult = this->geomMesher.Meshify();
-                meshResult.Scale = job.Scale;
-                meshResult.Translate = job.Translate;
-                if (meshResult.BufferFull) {
-                    int geom = this->bake_geom(meshResult);
-                    if ((InvalidIndex != geom) && (numGeoms < VisNode::NumGeoms)) {
-                        geoms[numGeoms++] = geom;
+            if (vol.MaxZ > 0) {
+                GeomMesher::Result meshResult;
+                this->geomMesher.Start();
+                this->geomMesher.StartVolume(vol);
+                do {
+                    meshResult = this->geomMesher.Meshify();
+                    meshResult.Scale = job.Scale;
+                    meshResult.Translate = job.Translate;
+                    if (meshResult.BufferFull) {
+                        int geom = this->bake_geom(meshResult);
+                        o_assert(numGeoms < VisNode::NumGeoms);
+                        if (InvalidIndex != geom) {
+                            geoms[numGeoms++] = geom;
+                        }
                     }
                 }
+                while (!meshResult.VolumeDone);
+                int geom = this->bake_geom(meshResult);
+                o_assert(numGeoms < VisNode::NumGeoms);
+                if (InvalidIndex != geom) {
+                    geoms[numGeoms++] = geom;
+                }
+                this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
             }
-            while (!meshResult.VolumeDone);
-            int geom = this->bake_geom(meshResult);
-            if ((InvalidIndex != geom) && (numGeoms < VisNode::NumGeoms)) {
-                geoms[numGeoms++] = geom;
+            else {
+                this->visTree.MarkOutOfBounds(job.NodeIndex);
             }
-            this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
         }
     }
 
@@ -148,10 +155,12 @@ VoxelTest::OnRunning() {
             }
         }
     }
-    Dbg::PrintF("draws: %d\n\r"
-                "tris: %d\n\r"
-                "avail geoms: %d\n\r"
-                "avail nodes: %d\n\r",
+    Dbg::PrintF("\n\r"
+                " LMB+Mouse or AWSD to move, RMB+Mouse to look around\n\n\r"
+                " draws: %d\n\r"
+                " tris: %d\n\r"
+                " avail geoms: %d\n\r"
+                " avail nodes: %d\n\r",
                 numGeoms, numQuads*2,
                 this->geomPool.freeGeoms.Size(),
                 this->visTree.freeNodes.Size());

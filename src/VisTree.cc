@@ -118,7 +118,7 @@ void
 VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
     VisNode& node = this->NodeAt(nodeIndex);
     float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
-    const float tau = 20.0f;
+    const float tau = 15.0f;
     if ((rho <= tau) || (0 == lvl)) {
         if (!node.IsLeaf()) {
             this->Merge(nodeIndex);
@@ -148,16 +148,20 @@ VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds
 //------------------------------------------------------------------------------
 void
 VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const VisBounds& bounds) {
-    if (camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
-        this->drawNodes.Add(nodeIndex);
-        VisNode& node = this->NodeAt(nodeIndex);
-        if (node.NeedsGeom()) {
-            // enqueue a new geom-generation job
-            node.flags |= VisNode::GeomPending;
-            glm::vec3 scale = Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
-            glm::vec3 trans = Translation(bounds.x0, bounds.y0);
-            this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
-        }
+    VisNode& node = this->NodeAt(nodeIndex);
+    if (node.IsOutOfBounds()) {
+        return;
+    }
+    if (!camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
+        return;
+    }
+    this->drawNodes.Add(nodeIndex);
+    if (node.NeedsGeom()) {
+        // enqueue a new geom-generation job
+        node.flags |= VisNode::GeomPending;
+        glm::vec3 scale = Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
+        glm::vec3 trans = Translation(bounds.x0, bounds.y0);
+        this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
     }
 }
 
@@ -185,6 +189,14 @@ VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
             this->freeGeoms.Add(geoms[i]);
         }
     }
+}
+
+//------------------------------------------------------------------------------
+void
+VisTree::MarkOutOfBounds(int16 nodeIndex) {
+    VisNode& node = this->NodeAt(nodeIndex);
+    node.flags &= ~VisNode::GeomPending;
+    node.flags |= VisNode::OutOfBounds;
 }
 
 //------------------------------------------------------------------------------

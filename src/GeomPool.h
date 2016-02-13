@@ -12,7 +12,7 @@
 
 class GeomPool {
 public:
-    static const int NumGeoms = 256;
+    static const int NumGeoms = 700;
 
     /// initialize the geom pool
     void Setup(const Oryol::GfxSetup& gfxSetup);
