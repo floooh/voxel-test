@@ -4,15 +4,16 @@
 #include "Pre.h"
 #include "Core/App.h"
 #include "Gfx/Gfx.h"
+#include "Input/Input.h"
 #include "Dbg/Dbg.h"
 #include "Time/Clock.h"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/noise.hpp"
 #include "shaders.h"
 #include "GeomPool.h"
 #include "GeomMesher.h"
 #include "VoxelGenerator.h"
 #include "VisTree.h"
+#include "Camera.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 using namespace Oryol;
 
@@ -24,23 +25,20 @@ public:
     AppState::Code OnRunning();
     AppState::Code OnCleanup();
 
-    void update_camera();
     void init_blocks(int frameIndex);
     int bake_geom(const GeomMesher::Result& meshResult);
+    void handle_input();
 
     int32 frameIndex = 0;
     int32 lastFrameIndex = -1;
-    glm::mat4 view;
-    glm::mat4 proj;
     glm::vec3 lightDir;
     ClearState clearState;
 
+    Camera camera;
     GeomPool geomPool;
     GeomMesher geomMesher;
     VoxelGenerator voxelGenerator;
     VisTree visTree;
-    int viewerX = 4096;
-    int viewerY = 4096;
 };
 OryolMain(VoxelTest);
 
@@ -52,12 +50,12 @@ VoxelTest::OnInit() {
     gfxSetup.SetPoolSize(GfxResourceType::Mesh, 512);
     Gfx::Setup(gfxSetup);
     this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
+    Input::Setup();
     Dbg::Setup();
 
     const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
     const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
-    this->proj = glm::perspectiveFov(glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
-    this->view = glm::lookAt(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    this->camera.Setup(glm::vec3(4096, 32, 4096), glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
     this->lightDir = glm::normalize(glm::vec3(0.5f, 1.0f, 0.25f));
 
     this->geomPool.Setup(gfxSetup);
@@ -89,14 +87,12 @@ VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
 AppState::Code
 VoxelTest::OnRunning() {
     this->frameIndex++;
-    this->viewerX = (this->viewerX + 1) % 8192;
-
-    this->update_camera();
+    this->handle_input();
 
     Gfx::ApplyDefaultRenderTarget(this->clearState);
 
     // traverse the vis-tree
-    this->visTree.Traverse(this->viewerX, this->viewerY);
+    this->visTree.Traverse(this->camera);
     // free any geoms to be freed
     while (!this->visTree.freeGeoms.Empty()) {
         int geom = this->visTree.freeGeoms.PopBack();
@@ -135,7 +131,6 @@ VoxelTest::OnRunning() {
         }
     }
 
-    const glm::mat4 mvp = this->proj * this->view;
     const int numDrawNodes = this->visTree.drawNodes.Size();
     int numQuads = 0;
     int numGeoms = 0;
@@ -144,7 +139,7 @@ VoxelTest::OnRunning() {
         for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
             if (node.geoms[geomIndex] != InvalidIndex) {
                 Geom& geom = this->geomPool.GeomAt(node.geoms[geomIndex]);
-                geom.VSParams.ModelViewProjection = mvp;
+                geom.VSParams.ModelViewProjection = this->camera.ViewProj;
                 Gfx::ApplyDrawState(geom.DrawState);
                 Gfx::ApplyUniformBlock(geom.VSParams);
                 Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
@@ -173,15 +168,40 @@ VoxelTest::OnCleanup() {
     this->geomMesher.Discard();
     this->geomPool.Discard();
     Dbg::Discard();
+    Input::Discard();
     Gfx::Discard();
     return App::OnCleanup();
 }
 
 //------------------------------------------------------------------------------
 void
-VoxelTest::update_camera() {
-    float32 angle = this->frameIndex * 0.0025f;
-    const glm::vec3 center(this->viewerX, 32.0f, this->viewerY);
-    const glm::vec3 viewerPos(sin(angle)* 200.0f, 48.0f, cos(angle) * 200.0f);
-    this->view = glm::lookAt(viewerPos + center, center, glm::vec3(0.0f, 1.0f, 0.0f));
+VoxelTest::handle_input() {
+    glm::vec3 move;
+    glm::vec2 rot;
+    const float vel = 0.75f;
+    const Keyboard& kbd = Input::Keyboard();
+    if (kbd.Attached) {
+        if (kbd.KeyPressed(Key::W) || kbd.KeyPressed(Key::Up)) {
+            move.z -= vel;
+        }
+        if (kbd.KeyPressed(Key::S) || kbd.KeyPressed(Key::Down)) {
+            move.z += vel;
+        }
+        if (kbd.KeyPressed(Key::A) || kbd.KeyPressed(Key::Left)) {
+            move.x -= vel;
+        }
+        if (kbd.KeyPressed(Key::D) || kbd.KeyPressed(Key::Right)) {
+            move.x += vel;
+        }
+    }
+    const Mouse& mouse = Input::Mouse();
+    if (mouse.Attached) {
+        if (mouse.ButtonPressed(Mouse::Button::LMB)) {
+            move.z -= vel;
+        }
+        if (mouse.ButtonPressed(Mouse::Button::LMB) || mouse.ButtonPressed(Mouse::Button::RMB)) {
+            rot = mouse.Movement * glm::vec2(-0.004, -0.003f);
+        }
+    }
+    this->camera.MoveRotate(move, rot);
 }

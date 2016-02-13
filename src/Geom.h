@@ -11,7 +11,7 @@
 
 class Geom {
 public:
-    static const int MaxNumVertices = (1<<16);
+    static const int MaxNumVertices = (1<<15);
     static const int MaxNumQuads = MaxNumVertices / 4;
     static const int MaxNumIndices = MaxNumQuads * 6;
 

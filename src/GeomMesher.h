@@ -9,6 +9,7 @@
 #include "glm/vec3.hpp"
 
 #define STBVOX_CONFIG_MODE (30)
+#define STBVOX_CONFIG_PRECISION_Z (0)
 #include "stb_voxel_render.h"
 
 class GeomMesher {

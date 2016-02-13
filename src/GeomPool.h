@@ -12,7 +12,7 @@
 
 class GeomPool {
 public:
-    static const int NumGeoms = 480;
+    static const int NumGeoms = 256;
 
     /// initialize the geom pool
     void Setup(const Oryol::GfxSetup& gfxSetup);
@@ -38,8 +38,9 @@ public:
 //------------------------------------------------------------------------------
 inline int
 GeomPool::Alloc() {
+    o_assert(!this->freeGeoms.Empty());
     int index = this->freeGeoms.PopBack();
-    o_assert_dbg(Oryol::InvalidIndex != index);
+    o_assert(Oryol::InvalidIndex != index);
     return index;
 }
 

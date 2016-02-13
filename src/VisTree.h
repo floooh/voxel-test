@@ -11,6 +11,7 @@
 #include "GeomMesher.h"
 #include "VisNode.h"
 #include "VisBounds.h"
+#include "Camera.h"
 
 class VisTree {
 public:
@@ -34,14 +35,14 @@ public:
     void Merge(Oryol::int16 nodeIndex);
     /// compute the screen-space error for a bounding rect and viewer pos x,y
     float ScreenSpaceError(const VisBounds& bounds, int lvl, int x, int y) const;
-    /// traverse the tree, deciding which nodes to render, with viewer pos x,y
-    void Traverse(int x, int y);
+    /// traverse the tree, deciding which nodes to render
+    void Traverse(const Camera& camera);
     /// apply geoms to a node
     void ApplyGeoms(Oryol::int16 nodeIndex, Oryol::int16* geoms, int numGeoms);
     /// internal, recursive traversal method
-    void traverse(Oryol::int16 nodeIndex, const VisBounds& bounds, int lvl, int x, int y);
+    void traverse(const Camera& camera, Oryol::int16 nodeIndex, const VisBounds& bounds, int lvl, int x, int y);
     /// gather a drawable node, prepare for drawing if needed
-    void gatherDrawNode(Oryol::int16 nodeIndex, int lvl, const VisBounds& bounds);
+    void gatherDrawNode(const Camera& camera, Oryol::int16 nodeIndex, int lvl, const VisBounds& bounds);
     /// invalidate any child nodes (free geoms, free nodes)
     void invalidateChildNodes(Oryol::int16 nodeIndex);
 
