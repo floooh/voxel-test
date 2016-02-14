@@ -39,8 +39,6 @@ public:
     void Traverse(const Camera& camera);
     /// apply geoms to a node
     void ApplyGeoms(Oryol::int16 nodeIndex, Oryol::int16* geoms, int numGeoms);
-    /// mark a node as out-of-bounds (below min-height or above max-height)
-    void MarkOutOfBounds(Oryol::int16 nodeIndex);
     /// internal, recursive traversal method
     void traverse(const Camera& camera, Oryol::int16 nodeIndex, const VisBounds& bounds, int lvl, int x, int y);
     /// gather a drawable node, prepare for drawing if needed

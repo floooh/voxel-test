@@ -52,14 +52,7 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
             int8 ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * 31;
             this->voxels[x][y][0] = 1;
             for (int z = 1; z < VolumeSizeZ; z++) {
-                int8 h = z < ni ? z:0;
-                if (h < vol.MinZ) {
-                    vol.MinZ = h;
-                }
-                else if (h > vol.MaxZ) {
-                    vol.MaxZ = h;
-                }
-                this->voxels[x][y][z] = h;
+                this->voxels[x][y][z] = z < ni ? z:0;
             }
         }
     }

@@ -53,9 +53,9 @@ void
 VisTree::FreeGeoms(int16 nodeIndex) {
     VisNode& node = this->NodeAt(nodeIndex);
     for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
-        if (InvalidIndex != node.geoms[geomIndex]) {
+        if (node.geoms[geomIndex] >= 0) {
             this->freeGeoms.Add(node.geoms[geomIndex]);
-            node.geoms[geomIndex] = InvalidIndex;
+            node.geoms[geomIndex] = VisNode::InvalidGeom;
         }
     }
 }
@@ -63,11 +63,13 @@ VisTree::FreeGeoms(int16 nodeIndex) {
 //------------------------------------------------------------------------------
 void
 VisTree::Split(int16 nodeIndex) {
+    // turns a leaf node into an inner node, frees any draw geoms and
+    // and adds 4 child nodes
     VisNode& node = this->NodeAt(nodeIndex);
     o_assert_dbg(node.IsLeaf());
     this->FreeGeoms(nodeIndex);
     for (int childIndex = 0; childIndex < VisNode::NumChilds; childIndex++) {
-        o_assert_dbg(InvalidIndex == node.childs[childIndex]);
+        o_assert_dbg(VisNode::InvalidChild == node.childs[childIndex]);
         node.childs[childIndex] = this->AllocNode();
     }
     node.flags &= ~VisNode::GeomPending;
@@ -76,14 +78,16 @@ VisTree::Split(int16 nodeIndex) {
 //------------------------------------------------------------------------------
 void
 VisTree::Merge(int16 nodeIndex) {
+    // turns an inner node into a leaf node by recursively removing
+    // children and any encountered draw geoms
     VisNode& node = this->NodeAt(nodeIndex);
     for (int childIndex = 0; childIndex < VisNode::NumChilds; childIndex++) {
-        if (InvalidIndex != node.childs[childIndex]) {
+        if (VisNode::InvalidChild != node.childs[childIndex]) {
             VisNode& childNode = this->NodeAt(node.childs[childIndex]);
             this->FreeGeoms(node.childs[childIndex]);
             this->Merge(node.childs[childIndex]);
             this->freeNodes.Add(node.childs[childIndex]);
-            node.childs[childIndex] = InvalidIndex;
+            node.childs[childIndex] = VisNode::InvalidChild;
         }
     }
 }
@@ -104,6 +108,8 @@ VisTree::ScreenSpaceError(const VisBounds& bounds, int lvl, int posX, int posY) 
 //------------------------------------------------------------------------------
 void
 VisTree::Traverse(const Camera& camera) {
+    // traverse the entire tree to find draw nodes
+    // split and merge nodes based required LOD,
     int lvl = NumLevels;
     int nodeIndex = this->rootNode;
     int posX = camera.Pos.x;
@@ -149,7 +155,7 @@ VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds
 void
 VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const VisBounds& bounds) {
     VisNode& node = this->NodeAt(nodeIndex);
-    if (node.IsOutOfBounds()) {
+    if (node.HasEmptyGeom()) {
         return;
     }
     if (!camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
@@ -171,12 +177,12 @@ VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
     VisNode& node = this->NodeAt(nodeIndex);
     if (node.WaitsForGeom()) {
         for (int i = 0; i < VisNode::NumGeoms; i++) {
-            o_assert_dbg(InvalidIndex == node.geoms[i]);
+            o_assert_dbg(VisNode::InvalidGeom == node.geoms[i]);
             if (i < numGeoms) {
                 node.geoms[i] = geoms[i];
             }
             else {
-                node.geoms[i] = InvalidIndex;
+                node.geoms[i] = VisNode::InvalidGeom;
             }
         }
         node.flags &= ~VisNode::GeomPending;
@@ -185,18 +191,10 @@ VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
         // if the node didn't actually wait for geoms any longer,
         // immediately kill the geoms
         for (int i = 0; i < numGeoms; i++) {
-            o_assert_dbg(InvalidIndex != geoms[i]);
+            o_assert_dbg(VisNode::InvalidGeom != geoms[i]);
             this->freeGeoms.Add(geoms[i]);
         }
     }
-}
-
-//------------------------------------------------------------------------------
-void
-VisTree::MarkOutOfBounds(int16 nodeIndex) {
-    VisNode& node = this->NodeAt(nodeIndex);
-    node.flags &= ~VisNode::GeomPending;
-    node.flags |= VisNode::OutOfBounds;
 }
 
 //------------------------------------------------------------------------------

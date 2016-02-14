@@ -80,7 +80,9 @@ VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
         geom.VSParams.TexTranslate = meshResult.TexTranslate;
         return geomIndex;
     }
-    return InvalidIndex;
+    else {
+        return VisNode::EmptyGeom;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -108,33 +110,24 @@ VoxelTest::OnRunning() {
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
 //Volume vol = this->voxelGenerator.GenDebug(job.Bounds, job.Level);
-            if (vol.MaxZ > 0) {
-                GeomMesher::Result meshResult;
-                this->geomMesher.Start();
-                this->geomMesher.StartVolume(vol);
-                do {
-                    meshResult = this->geomMesher.Meshify();
-                    meshResult.Scale = job.Scale;
-                    meshResult.Translate = job.Translate;
-                    if (meshResult.BufferFull) {
-                        int geom = this->bake_geom(meshResult);
-                        o_assert(numGeoms < VisNode::NumGeoms);
-                        if (InvalidIndex != geom) {
-                            geoms[numGeoms++] = geom;
-                        }
-                    }
-                }
-                while (!meshResult.VolumeDone);
-                int geom = this->bake_geom(meshResult);
-                o_assert(numGeoms < VisNode::NumGeoms);
-                if (InvalidIndex != geom) {
+            GeomMesher::Result meshResult;
+            this->geomMesher.Start();
+            this->geomMesher.StartVolume(vol);
+            do {
+                meshResult = this->geomMesher.Meshify();
+                meshResult.Scale = job.Scale;
+                meshResult.Translate = job.Translate;
+                if (meshResult.BufferFull) {
+                    int geom = this->bake_geom(meshResult);
+                    o_assert(numGeoms < VisNode::NumGeoms);
                     geoms[numGeoms++] = geom;
                 }
-                this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
             }
-            else {
-                this->visTree.MarkOutOfBounds(job.NodeIndex);
-            }
+            while (!meshResult.VolumeDone);
+            int geom = this->bake_geom(meshResult);
+            o_assert(numGeoms < VisNode::NumGeoms);
+            geoms[numGeoms++] = geom;
+            this->visTree.ApplyGeoms(job.NodeIndex, geoms, numGeoms);
         }
     }
 
@@ -144,7 +137,7 @@ VoxelTest::OnRunning() {
     for (int i = 0; i < numDrawNodes; i++) {
         const VisNode& node = this->visTree.NodeAt(this->visTree.drawNodes[i]);
         for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
-            if (node.geoms[geomIndex] != InvalidIndex) {
+            if (node.geoms[geomIndex] >= 0) {
                 Geom& geom = this->geomPool.GeomAt(node.geoms[geomIndex]);
                 geom.VSParams.ModelViewProjection = this->camera.ViewProj;
                 Gfx::ApplyDrawState(geom.DrawState);
@@ -160,10 +153,12 @@ VoxelTest::OnRunning() {
                 " draws: %d\n\r"
                 " tris: %d\n\r"
                 " avail geoms: %d\n\r"
-                " avail nodes: %d\n\r",
+                " avail nodes: %d\n\r"
+                " pending chunks: %d\n\r",
                 numGeoms, numQuads*2,
                 this->geomPool.freeGeoms.Size(),
-                this->visTree.freeNodes.Size());
+                this->visTree.freeNodes.Size(),
+                this->visTree.geomGenJobs.Size());
     Dbg::DrawTextBuffer();
     Gfx::CommitFrame();
 
