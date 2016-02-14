@@ -40,11 +40,11 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
 
     Volume vol = this->initVolume();
     glm::vec2 p;
-    p.x = (x0-voxelSizeX) / float(Config::MapDimVoxels);
+    p.x = (x0-(voxelSizeX*0.5f)) / float(Config::MapDimVoxels);
     const float dx = ((x1-x0)+2*voxelSizeX) / float(Config::MapDimVoxels*VolumeSizeXY);
     const float dy = ((y1-y0)+2*voxelSizeY) / float(Config::MapDimVoxels*VolumeSizeXY);
     for (int x = 0; x < VolumeSizeXY; x++, p.x+=dx) {
-        p.y = (y0-voxelSizeY) / float(Config::MapDimVoxels);
+        p.y = (y0-(voxelSizeY*0.5f)) / float(Config::MapDimVoxels);
         for (int y = 0; y < VolumeSizeXY; y++, p.y+=dy) {
             float n = glm::simplex(p*0.5f) * 1.5f;
             n += glm::simplex(p*2.5f)*0.35f;
