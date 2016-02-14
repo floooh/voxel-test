@@ -48,10 +48,10 @@ public:
 
     /// get a node's bounds
     static VisBounds Bounds(int lvl, int x, int y);
-    /// compute translation vector for a bounds origin
-    static glm::vec3 Translation(int x0, int y0);
+    /// compute translation vector for a bounds
+    static glm::vec3 Translation(const VisBounds& bounds);
     /// compute scale vector for a bounds rect
-    static glm::vec3 Scale(int x0, int x1, int y0, int y1);
+    static glm::vec3 Scale(const VisBounds& bounds);
 
     struct GeomGenJob {
         GeomGenJob() : NodeIndex(Oryol::InvalidIndex), Level(0) { }

@@ -165,8 +165,8 @@ VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const Vi
     if (node.NeedsGeom()) {
         // enqueue a new geom-generation job
         node.flags |= VisNode::GeomPending;
-        glm::vec3 scale = Scale(bounds.x0, bounds.x1, bounds.y0, bounds.y1);
-        glm::vec3 trans = Translation(bounds.x0, bounds.y0);
+        glm::vec3 scale = Scale(bounds);
+        glm::vec3 trans = Translation(bounds);
         this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
     }
 }
@@ -213,13 +213,16 @@ VisTree::Bounds(int lvl, int x, int y) {
 
 //------------------------------------------------------------------------------
 glm::vec3
-VisTree::Translation(int x0, int y0) {
-    return glm::vec3(x0, y0, 0.0f);
+VisTree::Translation(const VisBounds& bounds) {
+    return glm::vec3(bounds.x0 - (bounds.x1-bounds.x0)/Config::ChunkSizeXY,
+                     bounds.y0 - (bounds.y1-bounds.y0)/Config::ChunkSizeXY,
+                     0.0f);
 }
 
 //------------------------------------------------------------------------------
 glm::vec3
-VisTree::Scale(int x0, int x1, int y0, int y1) {
-    const float s = Config::ChunkSizeXY;
-    return glm::vec3(float(x1-x0)/s, float(y1-y0)/s, 1.0f);
+VisTree::Scale(const VisBounds& bounds) {
+    return glm::vec3((bounds.x1-bounds.x0)/Config::ChunkSizeXY,
+                     (bounds.y1-bounds.y0)/Config::ChunkSizeXY,
+                     1.0f);
 }

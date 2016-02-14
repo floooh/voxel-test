@@ -67,12 +67,11 @@ VoxelGenerator::GenDebug(const VisBounds& bounds, int lvl) {
     Memory::Clear(this->voxels, sizeof(this->voxels));
     for (int x = 0; x < VolumeSizeXY; x++) {
         for (int y = 0; y < VolumeSizeXY; y++) {
+            int8 bt = blockType;
             if ((x<=1)||(y<=1)||(x>=VolumeSizeXY-2)||(y>=VolumeSizeXY-2)) {
-                this->voxels[x][y][lvl+1] = 2*blockType;
+                bt = blockType + 1;
             }
-            else {
-                this->voxels[x][y][lvl+1] = blockType;
-            }
+            this->voxels[x][y][lvl+1] = bt;
         }
     }
     return vol;
