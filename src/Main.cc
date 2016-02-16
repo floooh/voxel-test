@@ -131,6 +131,7 @@ VoxelTest::OnRunning() {
         }
     }
 
+    // render visible geoms
     const int numDrawNodes = this->visTree.drawNodes.Size();
     int numQuads = 0;
     int numGeoms = 0;

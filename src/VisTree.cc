@@ -20,6 +20,7 @@ VisTree::Setup(int displayWidth, float fov) {
     this->freeNodes.Reserve(MaxNumNodes);
     this->geomGenJobs.Reserve(MaxNumNodes);
     this->freeGeoms.Reserve(MaxNumNodes);
+    this->traverseStack.Reserve(NumLevels);
     for (int i = MaxNumNodes-1; i >=0; i--) {
         this->freeNodes.Add(i);
     }
@@ -57,17 +58,18 @@ VisTree::FreeGeoms(int16 nodeIndex) {
             this->freeGeoms.Add(node.geoms[geomIndex]);
             node.geoms[geomIndex] = VisNode::InvalidGeom;
         }
+        else {
+            break;
+        }
     }
 }
 
 //------------------------------------------------------------------------------
 void
 VisTree::Split(int16 nodeIndex) {
-    // turns a leaf node into an inner node, frees any draw geoms and
-    // and adds 4 child nodes
+    // turns a leaf node into an inner node, do NOT free geom
     VisNode& node = this->NodeAt(nodeIndex);
     o_assert_dbg(node.IsLeaf());
-    this->FreeGeoms(nodeIndex);
     for (int childIndex = 0; childIndex < VisNode::NumChilds; childIndex++) {
         o_assert_dbg(VisNode::InvalidChild == node.childs[childIndex]);
         node.childs[childIndex] = this->AllocNode();
@@ -122,13 +124,11 @@ VisTree::Traverse(const Camera& camera) {
 //------------------------------------------------------------------------------
 void
 VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
+    this->traverseStack.Add(nodeIndex);
     VisNode& node = this->NodeAt(nodeIndex);
     float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
     const float tau = 15.0f;
     if ((rho <= tau) || (0 == lvl)) {
-        if (!node.IsLeaf()) {
-            this->Merge(nodeIndex);
-        }
         this->gatherDrawNode(camera, nodeIndex, lvl, bounds);
     }
     else {
@@ -149,25 +149,62 @@ VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds
             }
         }
     }
+    this->traverseStack.PopBack();
 }
 
 //------------------------------------------------------------------------------
 void
 VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const VisBounds& bounds) {
     VisNode& node = this->NodeAt(nodeIndex);
-    if (node.HasEmptyGeom()) {
-        return;
+
+    // FIXME FIXME FIXME: this code needs a thorough cleanup, esp gathering
+    // and releasing the parent/child node placeholder geoms
+
+    bool needsPlaceholder = false;
+    if (camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
+        if (!node.HasEmptyGeom() && node.NeedsGeom()) {
+            // enqueue a new geom-generation job
+            node.flags |= VisNode::GeomPending;
+            glm::vec3 scale = Scale(bounds);
+            glm::vec3 trans = Translation(bounds);
+            this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
+            needsPlaceholder = true;
+        }
+        else if (node.WaitsForGeom()) {
+            needsPlaceholder = true;
+        }
+        if (needsPlaceholder) {
+            // prefer child nodes as placeholder
+            if ((VisNode::InvalidChild != node.childs[0]) &&
+                (VisNode::InvalidGeom != this->NodeAt(node.childs[0]).geoms[0])) {
+                for (int i = 0; i < VisNode::NumChilds; i++) {
+                    this->drawNodes.Add(node.childs[i]);
+                }
+            }
+            // otherwise check parent node as placeholder
+            else if ((this->traverseStack.Size() > 1) &&
+                     (VisNode::InvalidGeom != this->NodeAt(this->traverseStack[this->traverseStack.Size()-2]).geoms[0]))
+            {
+                this->drawNodes.Add(this->traverseStack[this->traverseStack.Size()-2]);
+            }
+        }
+        else {
+            if (!node.HasEmptyGeom()) {
+                this->drawNodes.Add(nodeIndex);
+            }
+        }
     }
-    if (!camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
-        return;
-    }
-    this->drawNodes.Add(nodeIndex);
-    if (node.NeedsGeom()) {
-        // enqueue a new geom-generation job
-        node.flags |= VisNode::GeomPending;
-        glm::vec3 scale = Scale(bounds);
-        glm::vec3 trans = Translation(bounds);
-        this->geomGenJobs.Add(GeomGenJob(nodeIndex, lvl, bounds, scale, trans));
+    // clean up any nodes and geoms that might have been used as placeholder
+    if (!needsPlaceholder) {
+        if (!node.IsLeaf()) {
+            this->Merge(nodeIndex);
+        }
+        // free any parent node geoms
+        // FIXME: doing this each time is terrible!
+        int numParents = this->traverseStack.Size() - 2;    // FIXME: this should be -1? but this leaks geoms :/
+        for (int i = 0; i < numParents; i++) {
+            this->FreeGeoms(this->traverseStack[i]);
+        }
     }
 }
 

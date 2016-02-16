@@ -72,5 +72,6 @@ public:
     Oryol::Array<Oryol::int16> drawNodes;
     Oryol::Array<GeomGenJob> geomGenJobs;
     Oryol::Array<Oryol::int16> freeGeoms;
+    Oryol::Array<Oryol::int16> traverseStack;
     Oryol::int16 rootNode;
 };
