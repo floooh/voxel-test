@@ -8,7 +8,7 @@ using namespace Oryol;
 
 //------------------------------------------------------------------------------
 void
-Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh, const Shaders::Voxel::VSParams& params) {
+Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh, Id shd, const Shaders::Voxel::VSParams& params) {
 
     // static shader params
     // FIXME: better move those into a separate uniform block?
@@ -20,7 +20,6 @@ Geom::Setup(const GfxSetup& gfxSetup, Id indexMesh, const Shaders::Voxel::VSPara
         .Add(VertexAttr::Position, VertexFormat::UByte4)
         .Add(VertexAttr::Normal, VertexFormat::UByte4);
     this->Mesh = Gfx::CreateResource(meshSetup);
-    Id shd = Gfx::CreateResource(Shaders::Voxel::Setup());
     auto dss = DrawStateSetup::FromMeshAndShader(indexMesh, shd);
     dss.Meshes[1] = this->Mesh;
     dss.DepthStencilState.DepthCmpFunc = CompareFunc::LessEqual;

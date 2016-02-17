@@ -46,8 +46,9 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     }
 
     // setup geoms
+    Id shd = Gfx::CreateResource(Shaders::Voxel::Setup());
     for (auto& geom : this->geoms) {
-        geom.Setup(gfxSetup, this->indexMesh, vsParams);
+        geom.Setup(gfxSetup, this->indexMesh, shd, vsParams);
     }
     this->freeGeoms.Reserve(NumGeoms);
     this->FreeAll();
