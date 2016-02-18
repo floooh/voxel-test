@@ -23,21 +23,26 @@
 @out vec3 voxelspace_pos
 @out vec3 color
 @out float amb_occ
-    facedata = normal.xyzw;
 
-    vec3 offset = position.xzy;
-    amb_occ  = position.w;
+    // manually extract position and normal into range 0..255
+    vec4 p = position * 256.0;
+    vec4 n = normal * 256.0;
+
+    facedata = n.xyzw;
+
+    vec3 offset = p.xzy;
+    amb_occ  = p.w;
 
     voxelspace_pos = offset * scale.xzy;
-    vec4 p = vec4(voxelspace_pos + translate.xzy, 1.0);
 
-    int normal_index = int(mod(normal.w / 4.0, 6.0));
+    int normal_index = int(mod(n.w / 4.0, 6.0));
     vec3 face_normal = mul(model, normal_table[normal_index]).xzy;
     float l = clamp(dot(face_normal, light_dir), 0.0, 1.0) + 0.4;
     int color_index = int(mod(facedata.z, 32.0));
     color = color_table[color_index].xyz * l;
 
-    _position = mul(mvp, p);
+    vec4 wp = vec4(voxelspace_pos + translate.xzy, 1.0);
+    _position = mul(mvp, wp);
 @end
 
 //------------------------------------------------------------------------------
