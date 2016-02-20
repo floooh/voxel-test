@@ -45,11 +45,12 @@ OryolMain(VoxelTest);
 //------------------------------------------------------------------------------
 AppState::Code
 VoxelTest::OnInit() {
+    this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
     auto gfxSetup = GfxSetup::WindowMSAA4(800, 600, "Oryol Voxel Test");
     gfxSetup.SetPoolSize(GfxResourceType::DrawState, 1024);
     gfxSetup.SetPoolSize(GfxResourceType::Mesh, 1024);
+    gfxSetup.ClearHint = this->clearState;
     Gfx::Setup(gfxSetup);
-    this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
     Input::Setup();
     Dbg::Setup();
 
