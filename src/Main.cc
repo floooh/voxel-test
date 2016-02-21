@@ -52,6 +52,18 @@ VoxelTest::OnInit() {
     gfxSetup.ClearHint = this->clearState;
     Gfx::Setup(gfxSetup);
     Input::Setup();
+    Input::SetMousePointerLockHandler([](const Mouse::Event& event) -> Mouse::PointerLockMode {
+        // switch pointer-lock on/off on left-mouse-button
+        if ((event.Button == Mouse::LMB) || (event.Button == Mouse::RMB)) {
+            if (event.Type == Mouse::Event::ButtonDown) {
+                return Mouse::PointerLockModeEnable;
+            }
+            else if (event.Type == Mouse::Event::ButtonUp) {
+                return Mouse::PointerLockModeDisable;
+            }
+        }
+        return Mouse::PointerLockModeDontCare;
+    });
     Dbg::Setup();
 
     const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
