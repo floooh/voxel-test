@@ -28,7 +28,6 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     meshSetup.NumVertices = 0;
     meshSetup.NumIndices  = Geom::MaxNumIndices;
     meshSetup.IndicesType = IndexType::Index16;
-    meshSetup.PrimType = PrimitiveType::Triangles;
     meshSetup.DataVertexOffset = InvalidIndex;
     meshSetup.DataIndexOffset = 0;
     this->IndexMesh = Gfx::CreateResource(meshSetup, indices, sizeof(indices));
