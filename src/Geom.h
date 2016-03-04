@@ -16,12 +16,11 @@ public:
     static const int MaxNumIndices = MaxNumQuads * 6;
 
     /// one-time init
-    void Setup(const Oryol::GfxSetup& gfxSetup, Oryol::Id indexMesh, Oryol::Id shd, const Oryol::Shaders::Voxel::VSParams& params);
+    void Setup(const Oryol::GfxSetup& gfxSetup, const Oryol::VertexLayout& layout, Oryol::Id indexMesh, Oryol::Id shd, const Oryol::Shaders::Voxel::VSParams& params);
     /// one-time discard
     void Discard();
 
     int NumQuads = 0;
     Oryol::Id Mesh;
-    Oryol::Id DrawState;
     Oryol::Shaders::Voxel::VSParams VSParams;
 };

@@ -31,7 +31,7 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     meshSetup.PrimType = PrimitiveType::Triangles;
     meshSetup.DataVertexOffset = InvalidIndex;
     meshSetup.DataIndexOffset = 0;
-    this->indexMesh = Gfx::CreateResource(meshSetup, indices, sizeof(indices));
+    this->IndexMesh = Gfx::CreateResource(meshSetup, indices, sizeof(indices));
 
     // setup shader params template
     Shaders::Voxel::VSParams vsParams;
@@ -45,10 +45,22 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
         vsParams.ColorTable[i] = glm::linearRand(glm::vec4(0.25f), glm::vec4(1.0f));
     }
 
-    // setup geoms
+    // setup shader and drawstate
     Id shd = Gfx::CreateResource(Shaders::Voxel::Setup());
+    auto dss = DrawStateSetup::FromShader(shd);
+    dss.Layouts[1]
+        .Add(VertexAttr::Position, VertexFormat::UByte4N)
+        .Add(VertexAttr::Normal, VertexFormat::UByte4N);
+    dss.DepthStencilState.DepthCmpFunc = CompareFunc::LessEqual;
+    dss.DepthStencilState.DepthWriteEnabled = true;
+    dss.RasterizerState.CullFaceEnabled = true;
+    dss.RasterizerState.CullFace = Face::Front;
+    dss.RasterizerState.SampleCount = gfxSetup.SampleCount;
+    this->DrawState = Gfx::CreateResource(dss);
+
+    // setup geoms
     for (auto& geom : this->geoms) {
-        geom.Setup(gfxSetup, this->indexMesh, shd, vsParams);
+        geom.Setup(gfxSetup, dss.Layouts[1], this->IndexMesh, shd, vsParams);
     }
     this->freeGeoms.Reserve(NumGeoms);
     this->FreeAll();
@@ -57,7 +69,8 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
 //------------------------------------------------------------------------------
 void
 GeomPool::Discard() {
-    this->indexMesh.Invalidate();
+    this->IndexMesh.Invalidate();
+    this->DrawState.Invalidate();
     this->freeGeoms.Clear();
     for (auto& geom : this->geoms) {
         geom.Discard();

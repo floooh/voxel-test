@@ -30,7 +30,8 @@ public:
     /// get geom by index (read-only)
     const Geom& GeomAt(int index) const;
 
-    Oryol::Id indexMesh;
+    Oryol::Id IndexMesh;
+    Oryol::Id DrawState;
     Oryol::StaticArray<Geom, NumGeoms> geoms;
     Oryol::Array<int> freeGeoms;
 };

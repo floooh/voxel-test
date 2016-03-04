@@ -148,13 +148,16 @@ VoxelTest::OnRunning() {
     const int numDrawNodes = this->visTree.drawNodes.Size();
     int numQuads = 0;
     int numGeoms = 0;
+    MeshBlock meshBlock;
+    meshBlock[0] = this->geomPool.IndexMesh;
     for (int i = 0; i < numDrawNodes; i++) {
         const VisNode& node = this->visTree.NodeAt(this->visTree.drawNodes[i]);
         for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
             if (node.geoms[geomIndex] >= 0) {
                 Geom& geom = this->geomPool.GeomAt(node.geoms[geomIndex]);
+                meshBlock[1] = geom.Mesh;
                 geom.VSParams.ModelViewProjection = this->camera.ViewProj;
-                Gfx::ApplyDrawState(geom.DrawState);
+                Gfx::ApplyDrawState(this->geomPool.DrawState, meshBlock);
                 Gfx::ApplyUniformBlock(geom.VSParams);
                 Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
                 numQuads += geom.NumQuads;
