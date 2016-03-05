@@ -122,7 +122,6 @@ VoxelTest::OnRunning() {
             int numGeoms = 0;
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
-//Volume vol = this->voxelGenerator.GenDebug(job.Bounds, job.Level);
             GeomMesher::Result meshResult;
             this->geomMesher.Start();
             this->geomMesher.StartVolume(vol);
@@ -166,7 +165,8 @@ VoxelTest::OnRunning() {
         }
     }
     Dbg::PrintF("\n\r"
-                " LMB+Mouse or AWSD to move, RMB+Mouse to look around\n\n\r"
+                " Desktop:  LMB+Mouse or AWSD to move, RMB+Mouse to look around\n\r"
+                " Mobile:   touch+pan to fly\n\n\r"
                 " draws: %d\n\r"
                 " tris: %d\n\r"
                 " avail geoms: %d\n\r"
@@ -221,7 +221,14 @@ VoxelTest::handle_input() {
             move.z -= vel;
         }
         if (mouse.ButtonPressed(Mouse::Button::LMB) || mouse.ButtonPressed(Mouse::Button::RMB)) {
-            rot = mouse.Movement * glm::vec2(-0.01, -0.007f);
+            rot = mouse.Movement * glm::vec2(-0.01f, -0.007f);
+        }
+    }
+    const Touchpad& touch = Input::Touchpad();
+    if (touch.Attached) {
+        if (touch.Panning) {
+            move.z -= vel;
+            rot = touch.Movement[0] * glm::vec2(-0.01f, 0.01f);
         }
     }
     this->camera.MoveRotate(move, rot);
