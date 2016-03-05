@@ -14,7 +14,6 @@
 @uniform vec3 tex_translate TexTranslate
 @end
 
-//------------------------------------------------------------------------------
 @vs vs
 @use_uniform_block vsParams
 @in vec4 position
@@ -45,7 +44,6 @@
     _position = mul(mvp, wp);
 @end
 
-//------------------------------------------------------------------------------
 @fs fs
 @in vec4 facedata
 @in vec3 voxelspace_pos
@@ -54,7 +52,4 @@
     _color = vec4(color, 1.0);
 @end
 
-//------------------------------------------------------------------------------
-@bundle Voxel
-@program vs fs
-@end
+@program Voxel vs fs
