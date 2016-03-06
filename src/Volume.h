@@ -7,8 +7,7 @@
 #include "Core/Types.h"
 #include "glm/vec3.hpp"
 
-class Volume {
-public:
+struct Volume {
     // start pointers to block types and colors
     Oryol::uint8* Blocks = nullptr;
 

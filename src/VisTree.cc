@@ -14,7 +14,7 @@ VisTree::Setup(int displayWidth, float fov) {
 
     // compute K for screen space error computation
     // (see: http://tulrich.com/geekstuff/sig-notes.pdf )
-    this->K = float(displayWidth) / (2.0f * glm::tan(fov*0.5f));
+    this->K = displayWidth / (2.0f * glm::tan(fov*0.5f));
 
     this->drawNodes.Reserve(MaxNumNodes);
     this->freeNodes.Reserve(MaxNumNodes);
@@ -102,7 +102,7 @@ VisTree::ScreenSpaceError(const VisBounds& bounds, int lvl, int posX, int posY) 
     // we just fudge the geometric error of the chunk by doubling it for
     // each tree level
     const float delta = float(1<<lvl);
-    const float D = float(bounds.MinDist(posX, posY)+1);
+    const float D = MinDist(posX, posY, bounds)+1.0f;
     float rho = (delta/D) * this->K;
     return rho;
 }
@@ -232,6 +232,36 @@ VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
             this->freeGeoms.Add(geoms[i]);
         }
     }
+}
+
+//------------------------------------------------------------------------------
+float
+VisTree::MinDist(int x, int y, const VisBounds& bounds) {
+    int dx;
+    int dx0 = x - bounds.x0;
+    int dx1 = bounds.x1 - x;
+    if ((dx0 >= 0) && (dx1 >= 0)) {
+        dx = 0;     // inside
+    }
+    else {
+        dx0 *= dx0;
+        dx1 *= dx1;
+        dx = dx0<dx1 ? dx0:dx1;
+    }
+
+    int dy;
+    int dy0 = y - bounds.y0;
+    int dy1 = bounds.y1 - y;
+    if ((dy0 >= 0) && (dy1 >= 0)) {
+        dy = 0;
+    }
+    else {
+        dy0 *= dy0;
+        dy1 *= dy1;
+        dy = dy0<dy1 ? dy0:dy1;
+    }
+    float d = glm::sqrt(dx+dy);
+    return d;
 }
 
 //------------------------------------------------------------------------------

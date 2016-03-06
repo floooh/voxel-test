@@ -4,8 +4,9 @@
     @class GeomMesher
     @brief meshify volumes into geoms
 */
-#include "Geom.h"
 #include "Volume.h"
+#include "GeomPool.h"
+#include "Config.h"
 #include "glm/vec3.hpp"
 
 #define STBVOX_CONFIG_MODE (30)
@@ -43,5 +44,5 @@ private:
     struct vertex {
         Oryol::uint32 attr_vertex = 0;
         Oryol::uint32 attr_face = 0;
-    } vertices[Geom::MaxNumVertices];
+    } vertices[Config::GeomMaxNumVertices];
 };

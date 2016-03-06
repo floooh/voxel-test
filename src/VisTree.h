@@ -46,6 +46,8 @@ public:
     /// invalidate any child nodes (free geoms, free nodes)
     void invalidateChildNodes(Oryol::int16 nodeIndex);
 
+    /// compute minimal distance between position and bounds
+    static float MinDist(int x, int y, const VisBounds& bounds);
     /// get a node's bounds
     static VisBounds Bounds(int lvl, int x, int y);
     /// compute translation vector for a bounds

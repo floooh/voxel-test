@@ -3,7 +3,6 @@ fips_begin_app(VoxelTest windowed)
         Main.cc
         Volume.h Config.h
         VoxelGenerator.h VoxelGenerator.cc
-        Geom.h Geom.cc
         GeomPool.h GeomPool.cc
         GeomMesher.h GeomMesher.cc
         VisNode.h VisBounds.h

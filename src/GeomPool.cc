@@ -3,6 +3,8 @@
 //------------------------------------------------------------------------------
 #include "Pre.h"
 #include "GeomPool.h"
+#include "Config.h"
+#include "Gfx/Gfx.h"
 #include "glm/geometric.hpp"
 #include "glm/gtc/random.hpp"
 
@@ -12,9 +14,9 @@ using namespace Oryol;
 void
 GeomPool::Setup(const GfxSetup& gfxSetup) {
 
-    // setup a static index mesh which is shared by all geom meshes
-    uint16 indices[Geom::MaxNumIndices];
-    for (int quadIndex = 0; quadIndex < Geom::MaxNumQuads; quadIndex++) {
+    // setup a static mesh with only indices which is shared by all geom meshes
+    uint16 indices[Config::GeomMaxNumIndices];
+    for (int quadIndex = 0; quadIndex < Config::GeomMaxNumQuads; quadIndex++) {
         int baseVertexIndex = quadIndex * 4;
         int ii = quadIndex * 6;
         indices[ii]   = baseVertexIndex + 0;
@@ -26,7 +28,7 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     }
     auto meshSetup = MeshSetup::FromData(Usage::InvalidUsage, Usage::Immutable);
     meshSetup.NumVertices = 0;
-    meshSetup.NumIndices  = Geom::MaxNumIndices;
+    meshSetup.NumIndices  = Config::GeomMaxNumIndices;
     meshSetup.IndicesType = IndexType::Index16;
     meshSetup.DataVertexOffset = InvalidIndex;
     meshSetup.DataIndexOffset = 0;
@@ -57,9 +59,13 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     dss.RasterizerState.SampleCount = gfxSetup.SampleCount;
     this->DrawState = Gfx::CreateResource(dss);
 
-    // setup geoms
-    for (auto& geom : this->geoms) {
-        geom.Setup(gfxSetup, dss.Layouts[1], this->IndexMesh, shd, vsParams);
+    // setup items
+    meshSetup = MeshSetup::Empty(Config::GeomMaxNumVertices, Usage::Dynamic);
+    meshSetup.Layout = dss.Layouts[1];
+    for (auto& geom : this->Geoms) {
+        geom.VSParams = vsParams;
+        geom.NumQuads = 0;
+        geom.Mesh = Gfx::CreateResource(meshSetup);
     }
     this->freeGeoms.Reserve(NumGeoms);
     this->FreeAll();
@@ -71,9 +77,6 @@ GeomPool::Discard() {
     this->IndexMesh.Invalidate();
     this->DrawState.Invalidate();
     this->freeGeoms.Clear();
-    for (auto& geom : this->geoms) {
-        geom.Discard();
-    }
 }
 
 //------------------------------------------------------------------------------

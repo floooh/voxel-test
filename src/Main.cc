@@ -73,7 +73,10 @@ VoxelTest::OnInit() {
 
     this->geomPool.Setup(gfxSetup);
     this->geomMesher.Setup();
-    this->visTree.Setup(fbWidth, glm::radians(45.0f));
+    // use a fixed display width, otherwise the geom pool could
+    // run out of items at high resolutions
+    const float displayWidth = 800;
+    this->visTree.Setup(displayWidth, glm::radians(45.0f));
 
     return App::OnInit();
 }
@@ -83,7 +86,7 @@ int
 VoxelTest::bake_geom(const GeomMesher::Result& meshResult) {
     if (meshResult.NumQuads > 0) {
         int geomIndex = this->geomPool.Alloc();
-        auto& geom = this->geomPool.GeomAt(geomIndex);
+        auto& geom = this->geomPool.Geoms[geomIndex];
         Gfx::UpdateVertices(geom.Mesh, meshResult.Vertices, meshResult.NumBytes);
         geom.NumQuads = meshResult.NumQuads;
         geom.VSParams.Model = glm::mat4();
@@ -153,7 +156,7 @@ VoxelTest::OnRunning() {
         const VisNode& node = this->visTree.NodeAt(this->visTree.drawNodes[i]);
         for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
             if (node.geoms[geomIndex] >= 0) {
-                Geom& geom = this->geomPool.GeomAt(node.geoms[geomIndex]);
+                auto& geom = this->geomPool.Geoms[node.geoms[geomIndex]];
                 meshBlock[1] = geom.Mesh;
                 geom.VSParams.ModelViewProjection = this->camera.ViewProj;
                 Gfx::ApplyDrawState(this->geomPool.DrawState, meshBlock);
