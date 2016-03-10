@@ -14,6 +14,7 @@
 #include "VisTree.h"
 #include "Camera.h"
 #include "glm/gtc/matrix_transform.hpp"
+#include <algorithm>
 
 using namespace Oryol;
 
@@ -125,6 +126,8 @@ VoxelTest::OnRunning() {
             int numGeoms = 0;
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);
+            this->voxelGenerator.createTrees(vol);
+            this->voxelGenerator.createClouds(vol);
             GeomMesher::Result meshResult;
             this->geomMesher.Start();
             this->geomMesher.StartVolume(vol);
