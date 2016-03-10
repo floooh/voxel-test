@@ -47,7 +47,7 @@ AppState::Code
 VoxelTest::OnInit() {
     this->clearState = ClearState::ClearAll(glm::vec4(0.2f, 0.2f, 0.5f, 1.0f), 1.0f, 0);
     auto gfxSetup = GfxSetup::WindowMSAA4(800, 600, "Oryol Voxel Test");
-    gfxSetup.SetPoolSize(GfxResourceType::DrawState, 1024);
+    gfxSetup.SetPoolSize(GfxResourceType::Pipeline, 1024);
     gfxSetup.SetPoolSize(GfxResourceType::Mesh, 1024);
     gfxSetup.ClearHint = this->clearState;
     Gfx::Setup(gfxSetup);
@@ -150,16 +150,17 @@ VoxelTest::OnRunning() {
     const int numDrawNodes = this->visTree.drawNodes.Size();
     int numQuads = 0;
     int numGeoms = 0;
-    MeshBlock meshBlock;
-    meshBlock[0] = this->geomPool.IndexMesh;
+    DrawState drawState;
+    drawState.Mesh[0] = this->geomPool.IndexMesh;
+    drawState.Pipeline = this->geomPool.Pipeline;
     for (int i = 0; i < numDrawNodes; i++) {
         const VisNode& node = this->visTree.NodeAt(this->visTree.drawNodes[i]);
         for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
             if (node.geoms[geomIndex] >= 0) {
                 auto& geom = this->geomPool.Geoms[node.geoms[geomIndex]];
-                meshBlock[1] = geom.Mesh;
+                drawState.Mesh[1] = geom.Mesh;
                 geom.VSParams.ModelViewProjection = this->camera.ViewProj;
-                Gfx::ApplyDrawState(this->geomPool.DrawState, meshBlock);
+                Gfx::ApplyDrawState(drawState);
                 Gfx::ApplyUniformBlock(geom.VSParams);
                 Gfx::Draw(PrimitiveGroup(0, geom.NumQuads*6));
                 numQuads += geom.NumQuads;

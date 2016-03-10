@@ -25,11 +25,11 @@ public:
     void FreeAll();
 
     Oryol::Id IndexMesh;
-    Oryol::Id DrawState;
+    Oryol::Id Pipeline;
     struct Geom {
         Oryol::Id Mesh;
         int NumQuads = 0;
-        Oryol::Shaders::Voxel::VSParams VSParams;
+        Oryol::Shader::VSParams VSParams;
     };
     static const int NumGeoms = 700;
     Oryol::StaticArray<Geom, NumGeoms> Geoms;

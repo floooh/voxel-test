@@ -35,7 +35,7 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     this->IndexMesh = Gfx::CreateResource(meshSetup, indices, sizeof(indices));
 
     // setup shader params template
-    Shaders::Voxel::VSParams vsParams;
+    Shader::VSParams vsParams;
     vsParams.NormalTable[0] = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
     vsParams.NormalTable[1] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
     vsParams.NormalTable[2] = glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
@@ -47,21 +47,21 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
     }
 
     // setup shader and drawstate
-    Id shd = Gfx::CreateResource(Shaders::Voxel::Setup());
-    auto dss = DrawStateSetup::FromShader(shd);
-    dss.Layouts[1]
+    Id shd = Gfx::CreateResource(Shader::Setup());
+    auto pips = PipelineSetup::FromShader(shd);
+    pips.Layouts[1]
         .Add(VertexAttr::Position, VertexFormat::UByte4N)
         .Add(VertexAttr::Normal, VertexFormat::UByte4N);
-    dss.DepthStencilState.DepthCmpFunc = CompareFunc::LessEqual;
-    dss.DepthStencilState.DepthWriteEnabled = true;
-    dss.RasterizerState.CullFaceEnabled = true;
-    dss.RasterizerState.CullFace = Face::Front;
-    dss.RasterizerState.SampleCount = gfxSetup.SampleCount;
-    this->DrawState = Gfx::CreateResource(dss);
+    pips.DepthStencilState.DepthCmpFunc = CompareFunc::LessEqual;
+    pips.DepthStencilState.DepthWriteEnabled = true;
+    pips.RasterizerState.CullFaceEnabled = true;
+    pips.RasterizerState.CullFace = Face::Front;
+    pips.RasterizerState.SampleCount = gfxSetup.SampleCount;
+    this->Pipeline = Gfx::CreateResource(pips);
 
     // setup items
     meshSetup = MeshSetup::Empty(Config::GeomMaxNumVertices, Usage::Dynamic);
-    meshSetup.Layout = dss.Layouts[1];
+    meshSetup.Layout = pips.Layouts[1];
     for (auto& geom : this->Geoms) {
         geom.VSParams = vsParams;
         geom.NumQuads = 0;
@@ -75,7 +75,7 @@ GeomPool::Setup(const GfxSetup& gfxSetup) {
 void
 GeomPool::Discard() {
     this->IndexMesh.Invalidate();
-    this->DrawState.Invalidate();
+    this->Pipeline.Invalidate();
     this->freeGeoms.Clear();
 }
 

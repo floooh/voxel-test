@@ -4,14 +4,14 @@
 //------------------------------------------------------------------------------
 
 @uniform_block vsParams VSParams
-@uniform mat4 mvp ModelViewProjection
-@uniform mat4 model Model
-@uniform vec4[6] normal_table NormalTable
-@uniform vec4[32] color_table ColorTable
-@uniform vec3 light_dir LightDir
-@uniform vec3 scale Scale
-@uniform vec3 translate Translate
-@uniform vec3 tex_translate TexTranslate
+mat4 mvp ModelViewProjection
+mat4 model Model
+vec4[6] normal_table NormalTable
+vec4[32] color_table ColorTable
+vec3 light_dir LightDir
+vec3 scale Scale
+vec3 translate Translate
+vec3 tex_translate TexTranslate
 @end
 
 @vs vs
@@ -52,4 +52,4 @@
     _color = vec4(color, 1.0);
 @end
 
-@program Voxel vs fs
+@program Shader vs fs
