@@ -161,7 +161,7 @@ VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const Vi
     // and releasing the parent/child node placeholder geoms
 
     bool needsPlaceholder = false;
-    if (camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeXY, bounds.y0, bounds.y1)) {
+    if (camera.BoxVisible(bounds.x0, bounds.x1, 0, Config::ChunkSizeZ, bounds.y0, bounds.y1)) {
         if (!node.HasEmptyGeom() && node.NeedsGeom()) {
             // enqueue a new geom-generation job
             node.flags |= VisNode::GeomPending;
