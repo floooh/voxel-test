@@ -49,7 +49,15 @@ vec3 tex_translate TexTranslate
 @in vec3 voxelspace_pos
 @in vec3 color
 @in float amb_occ
-    _color = vec4(color, 1.0);
+    vec3 fog_color = vec3(0.2, 0.2, 0.5);
+    const float fogdensity = 0.05;
+    const float endfog = 1500.0;
+    const float startfog = 500.0;
+    float fogdistance = _fragcoord.z / _fragcoord.w;
+    float d = fogdensity * fogdistance;
+    float fogval = (endfog - fogdistance) / (endfog - startfog);
+    float finalfog = 1.0 - clamp(fogval, 0.0, 1.0);
+    _color = vec4(mix(color, fog_color, finalfog), 1.0);
 @end
 
 @program Shader vs fs
