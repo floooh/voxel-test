@@ -46,10 +46,13 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
     for (int x = 0; x < VolumeSizeXY; x++, p.x+=dx) {
         p.y = (y0-(voxelSizeY*0.5f)) / float(Config::MapDimVoxels);
         for (int y = 0; y < VolumeSizeXY; y++, p.y+=dy) {
+            // each simple call is one octave
+            // the position is multiplied with the frequence
+            // the noise is multiplied with the amplitude
             float n = glm::simplex(p*0.5f) * 1.5f;
             n += glm::simplex(p*2.5f)*0.35f;
             n += glm::simplex(p*10.0f)*0.55f;
-            int8 ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * 31;
+            int8 ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * (VolumeSizeZ - 1);
             this->voxels[x][y][0] = 1;
             for (int z = 1; z < VolumeSizeZ; z++) {
                 this->voxels[x][y][z] = z < ni ? z:0;
