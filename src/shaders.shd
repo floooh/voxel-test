@@ -24,8 +24,8 @@ vec3 tex_translate TexTranslate
 @out float amb_occ
 
     // manually extract position and normal into range 0..255
-    vec4 p = position * 256.0;
-    vec4 n = normal * 256.0;
+    vec4 p = position * 255.0;
+    vec4 n = normal * 255.0;
 
     facedata = n.xyzw;
 
