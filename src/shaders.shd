@@ -30,7 +30,7 @@ vec3 tex_translate TexTranslate
     facedata = n.xyzw;
 
     vec3 offset = p.xzy;
-    amb_occ  = p.w;
+    amb_occ  = p.w / 63.0;
 
     voxelspace_pos = offset * scale.xzy;
 
