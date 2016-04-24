@@ -10,7 +10,7 @@ fips_begin_app(VoxelTest windowed)
         Camera.h Camera.cc
         stb_voxel_render.h)
     oryol_shader(shaders.shd)
-    fips_deps(Gfx Input Time Dbg)
+    fips_deps(Gfx Input Dbg)
 fips_end_app()
 
 # silence some stb_voxel_render warnings
