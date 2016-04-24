@@ -17,7 +17,7 @@ using namespace Oryol;
 Volume
 VoxelGenerator::initVolume() {
     Volume vol;
-    vol.Blocks = (uint8*) this->voxels;
+    vol.Blocks = (uint8_t*) this->voxels;
     vol.ArraySizeX = vol.ArraySizeY = VolumeSizeXY;
     vol.ArraySizeZ = VolumeSizeZ;
     vol.SizeX = vol.SizeY = Config::ChunkSizeXY;
@@ -52,7 +52,7 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
             float n = glm::simplex(p*0.5f) * 1.5f;
             n += glm::simplex(p*2.5f)*0.35f;
             n += glm::simplex(p*10.0f)*0.55f;
-            int8 ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * (VolumeSizeZ - 1);
+            int8_t ni = glm::clamp(n*0.5f + 0.5f, 0.0f, 1.0f) * (VolumeSizeZ - 1);
             this->voxels[x][y][0] = 1;
             for (int z = 1; z < VolumeSizeZ; z++) {
                 this->voxels[x][y][z] = z < ni ? z:0;
@@ -65,12 +65,12 @@ VoxelGenerator::GenSimplex(const VisBounds& bounds) {
 //------------------------------------------------------------------------------
 Volume
 VoxelGenerator::GenDebug(const VisBounds& bounds, int lvl) {
-    int8 blockType = lvl+1;
+    int8_t blockType = lvl+1;
     Volume vol = this->initVolume();
     Memory::Clear(this->voxels, sizeof(this->voxels));
     for (int x = 0; x < VolumeSizeXY; x++) {
         for (int y = 0; y < VolumeSizeXY; y++) {
-            int8 bt = blockType;
+            int8_t bt = blockType;
             if ((x<=1)||(y<=1)||(x>=VolumeSizeXY-2)||(y>=VolumeSizeXY-2)) {
                 bt = blockType + 1;
             }

@@ -29,8 +29,8 @@ public:
     int bake_geom(const GeomMesher::Result& meshResult);
     void handle_input();
 
-    int32 frameIndex = 0;
-    int32 lastFrameIndex = -1;
+    int frameIndex = 0;
+    int lastFrameIndex = -1;
     glm::vec3 lightDir;
     ClearState clearState;
 
@@ -66,8 +66,8 @@ VoxelTest::OnInit() {
     });
     Dbg::Setup();
 
-    const float32 fbWidth = (const float32) Gfx::DisplayAttrs().FramebufferWidth;
-    const float32 fbHeight = (const float32) Gfx::DisplayAttrs().FramebufferHeight;
+    const float fbWidth = (const float) Gfx::DisplayAttrs().FramebufferWidth;
+    const float fbHeight = (const float) Gfx::DisplayAttrs().FramebufferHeight;
     this->camera.Setup(glm::vec3(4096, 128, 4096), glm::radians(45.0f), fbWidth, fbHeight, 0.1f, 10000.0f);
     this->lightDir = glm::normalize(glm::vec3(0.5f, 1.0f, 0.25f));
 
@@ -121,7 +121,7 @@ VoxelTest::OnRunning() {
         int numProcessedJobs = 0;
         while ((numProcessedJobs < MaxChunksGeneratedPerFrame) && !this->visTree.geomGenJobs.Empty()) {
             numProcessedJobs++;
-            int16 geoms[VisNode::NumGeoms];
+            int16_t     geoms[VisNode::NumGeoms];
             int numGeoms = 0;
             VisTree::GeomGenJob job = this->visTree.geomGenJobs.PopBack();
             Volume vol = this->voxelGenerator.GenSimplex(job.Bounds);

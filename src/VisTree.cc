@@ -35,15 +35,15 @@ VisTree::Discard() {
 
 //------------------------------------------------------------------------------
 VisNode&
-VisTree::NodeAt(int16 nodeIndex) {
+VisTree::NodeAt(int16_t nodeIndex) {
     o_assert_dbg((nodeIndex >= 0) && (nodeIndex < MaxNumNodes));
     return this->nodes[nodeIndex];
 }
 
 //------------------------------------------------------------------------------
-int16
+int16_t
 VisTree::AllocNode() {
-    int16 index = this->freeNodes.PopBack();
+    int16_t index = this->freeNodes.PopBack();
     VisNode& node = this->nodes[index];
     node.Reset();
     return index;
@@ -51,7 +51,7 @@ VisTree::AllocNode() {
 
 //------------------------------------------------------------------------------
 void
-VisTree::FreeGeoms(int16 nodeIndex) {
+VisTree::FreeGeoms(int16_t nodeIndex) {
     VisNode& node = this->NodeAt(nodeIndex);
     for (int geomIndex = 0; geomIndex < VisNode::NumGeoms; geomIndex++) {
         if (node.geoms[geomIndex] >= 0) {
@@ -66,7 +66,7 @@ VisTree::FreeGeoms(int16 nodeIndex) {
 
 //------------------------------------------------------------------------------
 void
-VisTree::Split(int16 nodeIndex) {
+VisTree::Split(int16_t nodeIndex) {
     // turns a leaf node into an inner node, do NOT free geom
     VisNode& node = this->NodeAt(nodeIndex);
     o_assert_dbg(node.IsLeaf());
@@ -79,7 +79,7 @@ VisTree::Split(int16 nodeIndex) {
 
 //------------------------------------------------------------------------------
 void
-VisTree::Merge(int16 nodeIndex) {
+VisTree::Merge(int16_t nodeIndex) {
     // turns an inner node into a leaf node by recursively removing
     // children and any encountered draw geoms
     VisNode& node = this->NodeAt(nodeIndex);
@@ -123,7 +123,7 @@ VisTree::Traverse(const Camera& camera) {
 
 //------------------------------------------------------------------------------
 void
-VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
+VisTree::traverse(const Camera& camera, int16_t nodeIndex, const VisBounds& bounds, int lvl, int posX, int posY) {
     this->traverseStack.Add(nodeIndex);
     VisNode& node = this->NodeAt(nodeIndex);
     float rho = this->ScreenSpaceError(bounds, lvl, posX, posY);
@@ -154,7 +154,7 @@ VisTree::traverse(const Camera& camera, int16 nodeIndex, const VisBounds& bounds
 
 //------------------------------------------------------------------------------
 void
-VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const VisBounds& bounds) {
+VisTree::gatherDrawNode(const Camera& camera, int16_t nodeIndex, int lvl, const VisBounds& bounds) {
     VisNode& node = this->NodeAt(nodeIndex);
 
     // FIXME FIXME FIXME: this code needs a thorough cleanup, esp gathering
@@ -210,7 +210,7 @@ VisTree::gatherDrawNode(const Camera& camera, int16 nodeIndex, int lvl, const Vi
 
 //------------------------------------------------------------------------------
 void
-VisTree::ApplyGeoms(int16 nodeIndex, int16* geoms, int numGeoms) {
+VisTree::ApplyGeoms(int16_t nodeIndex, int16_t* geoms, int numGeoms) {
     VisNode& node = this->NodeAt(nodeIndex);
     if (node.WaitsForGeom()) {
         for (int i = 0; i < VisNode::NumGeoms; i++) {

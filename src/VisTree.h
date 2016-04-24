@@ -24,27 +24,27 @@ public:
     void Discard();
 
     /// get node by index
-    VisNode& NodeAt(Oryol::int16 nodeIndex);
+    VisNode& NodeAt(int16_t nodeIndex);
     /// allocate and init a node
-    Oryol::int16 AllocNode();
+    int16_t AllocNode();
     /// free any geoms in a node (non-recursive)
-    void FreeGeoms(Oryol::int16 nodeIndex);
+    void FreeGeoms(int16_t nodeIndex);
     /// split a node (create child nodes)
-    void Split(Oryol::int16 nodeIndex);
+    void Split(int16_t nodeIndex);
     /// merge a node, frees all child nodes recursively
-    void Merge(Oryol::int16 nodeIndex);
+    void Merge(int16_t nodeIndex);
     /// compute the screen-space error for a bounding rect and viewer pos x,y
     float ScreenSpaceError(const VisBounds& bounds, int lvl, int x, int y) const;
     /// traverse the tree, deciding which nodes to render
     void Traverse(const Camera& camera);
     /// apply geoms to a node
-    void ApplyGeoms(Oryol::int16 nodeIndex, Oryol::int16* geoms, int numGeoms);
+    void ApplyGeoms(int16_t nodeIndex, int16_t* geoms, int numGeoms);
     /// internal, recursive traversal method
-    void traverse(const Camera& camera, Oryol::int16 nodeIndex, const VisBounds& bounds, int lvl, int x, int y);
+    void traverse(const Camera& camera, int16_t nodeIndex, const VisBounds& bounds, int lvl, int x, int y);
     /// gather a drawable node, prepare for drawing if needed
-    void gatherDrawNode(const Camera& camera, Oryol::int16 nodeIndex, int lvl, const VisBounds& bounds);
+    void gatherDrawNode(const Camera& camera, int16_t nodeIndex, int lvl, const VisBounds& bounds);
     /// invalidate any child nodes (free geoms, free nodes)
-    void invalidateChildNodes(Oryol::int16 nodeIndex);
+    void invalidateChildNodes(int16_t nodeIndex);
 
     /// compute minimal distance between position and bounds
     static float MinDist(int x, int y, const VisBounds& bounds);
@@ -57,10 +57,10 @@ public:
 
     struct GeomGenJob {
         GeomGenJob() : NodeIndex(Oryol::InvalidIndex), Level(0) { }
-        GeomGenJob(Oryol::int16 nodeIndex, int lvl, const VisBounds& bounds, const glm::vec3& scale, const glm::vec3& trans) :
+        GeomGenJob(int16_t nodeIndex, int lvl, const VisBounds& bounds, const glm::vec3& scale, const glm::vec3& trans) :
             NodeIndex(nodeIndex), Level(lvl), Bounds(bounds), Scale(scale), Translate(trans) { }
 
-        Oryol::int16 NodeIndex;
+        int16_t NodeIndex;
         int Level;
         VisBounds Bounds;
         glm::vec3 Scale;
@@ -70,10 +70,10 @@ public:
     float K;
     static const int MaxNumNodes = 1024;
     VisNode nodes[MaxNumNodes];
-    Oryol::Array<Oryol::int16> freeNodes;
-    Oryol::Array<Oryol::int16> drawNodes;
+    Oryol::Array<int16_t> freeNodes;
+    Oryol::Array<int16_t> drawNodes;
     Oryol::Array<GeomGenJob> geomGenJobs;
-    Oryol::Array<Oryol::int16> freeGeoms;
-    Oryol::Array<Oryol::int16> traverseStack;
-    Oryol::int16 rootNode;
+    Oryol::Array<int16_t> freeGeoms;
+    Oryol::Array<int16_t> traverseStack;
+    int16_t rootNode;
 };

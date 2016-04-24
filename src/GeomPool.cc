@@ -15,7 +15,7 @@ void
 GeomPool::Setup(const GfxSetup& gfxSetup) {
 
     // setup a static mesh with only indices which is shared by all geom meshes
-    uint16 indices[Config::GeomMaxNumIndices];
+    uint16_t indices[Config::GeomMaxNumIndices];
     for (int quadIndex = 0; quadIndex < Config::GeomMaxNumQuads; quadIndex++) {
         int baseVertexIndex = quadIndex * 4;
         int ii = quadIndex * 6;

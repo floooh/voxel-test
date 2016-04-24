@@ -9,7 +9,7 @@
 
 struct Volume {
     // start pointers to block types and colors
-    Oryol::uint8* Blocks = nullptr;
+    uint8_t* Blocks = nullptr;
 
     int ArraySizeX = 0;
     int ArraySizeY = 0;

@@ -11,14 +11,14 @@ public:
     enum Flags {
         GeomPending = (1<<0),   // geom is currently prepared for drawing
     };
-    static const Oryol::int16 InvalidGeom = -1;
-    static const Oryol::int16 EmptyGeom = -2;
-    static const Oryol::int16 InvalidChild = -1;
+    static const int16_t InvalidGeom = -1;
+    static const int16_t EmptyGeom = -2;
+    static const int16_t InvalidChild = -1;
     static const int NumGeoms = 3;
     static const int NumChilds = 4;
-    Oryol::uint16 flags;
-    Oryol::int16 geoms[NumGeoms];       // up to 3 geoms
-    Oryol::int16 childs[NumChilds];     // 4 child nodes (or none)
+    uint16_t flags;
+    int16_t geoms[NumGeoms];       // up to 3 geoms
+    int16_t childs[NumChilds];     // 4 child nodes (or none)
 
     /// reset the node
     void Reset() {

@@ -21,5 +21,5 @@ public:
     /// initialize a volume object
     Volume initVolume();
 
-    Oryol::uint8 voxels[VolumeSizeXY][VolumeSizeXY][VolumeSizeZ];
+    uint8_t voxels[VolumeSizeXY][VolumeSizeXY][VolumeSizeZ];
 };

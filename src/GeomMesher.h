@@ -42,7 +42,7 @@ public:
 private:
     stbvox_mesh_maker meshMaker;
     struct vertex {
-        Oryol::uint32 attr_vertex = 0;
-        Oryol::uint32 attr_face = 0;
+        uint32_t attr_vertex = 0;
+        uint32_t attr_face = 0;
     } vertices[Config::GeomMaxNumVertices];
 };
